@@ -199,3 +199,94 @@ export function getReminderEmailHtml(guestName: string, items: string[], eventDe
     </div>
   `;
 }
+
+export function getOrganizerRsvpNotificationEmailHtml(name: string, phone: string, email: string, isAttending: boolean, guestsCount: number, message: string): string {
+  const statusText = isAttending ? 'Asistirá' : 'No podrá asistir';
+  const statusColor = isAttending ? '#386641' : '#b22222';
+  
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f4eae1; border-radius: 20px; background-color: #fbf9f6; color: #3a3232;">
+      <div style="text-align: center; padding: 20px; background: #726362; border-radius: 12px 12px 0 0; color: white;">
+        <h1 style="margin: 0; font-family: Georgia, serif; font-size: 22px; font-weight: normal;">🔔 Nueva Respuesta de RSVP</h1>
+        <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Notificación para Organizadores</p>
+      </div>
+      
+      <div style="padding: 24px; background-color: white; border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+        <p style="font-size: 15px; margin-top: 0;">Hola,</p>
+        <p style="font-size: 15px; line-height: 1.6;">
+          Un invitado ha registrado su respuesta en el sitio web:
+        </p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+          <tr style="border-bottom: 1px solid #f4eae1;">
+            <td style="padding: 8px 0; color: #726362; width: 150px;">Invitado:</td>
+            <td style="padding: 8px 0; font-weight: bold;">${name}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f4eae1;">
+            <td style="padding: 8px 0; color: #726362;">Asistencia:</td>
+            <td style="padding: 8px 0; font-weight: bold; color: ${statusColor};">${statusText}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f4eae1;">
+            <td style="padding: 8px 0; color: #726362;">Celular:</td>
+            <td style="padding: 8px 0;">${phone || 'No indicado'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f4eae1;">
+            <td style="padding: 8px 0; color: #726362;">Correo:</td>
+            <td style="padding: 8px 0;">${email || 'No indicado'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f4eae1;">
+            <td style="padding: 8px 0; color: #726362;">Acompañantes:</td>
+            <td style="padding: 8px 0; font-weight: bold;">${guestsCount}</td>
+          </tr>
+          ${message ? `
+          <tr style="border-bottom: 1px solid #f4eae1;">
+            <td style="padding: 8px 0; color: #726362; vertical-align: top;">Mensaje:</td>
+            <td style="padding: 8px 0; font-style: italic;">"${message}"</td>
+          </tr>
+          ` : ''}
+        </table>
+        
+        <div style="text-align: center; margin-top: 25px;">
+          <a href="https://babyshower-vert.vercel.app/admin" style="display: inline-block; background-color: #b5828c; color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: bold;">Ver Panel de Administración</a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+export function getOrganizerGiftNotificationEmailHtml(guestName: string, guestEmail: string, giftName: string): string {
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f4eae1; border-radius: 20px; background-color: #fbf9f6; color: #3a3232;">
+      <div style="text-align: center; padding: 20px; background: #726362; border-radius: 12px 12px 0 0; color: white;">
+        <h1 style="margin: 0; font-family: Georgia, serif; font-size: 22px; font-weight: normal;">🎁 Nuevo Regalo Reservado</h1>
+        <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Notificación para Organizadores</p>
+      </div>
+      
+      <div style="padding: 24px; background-color: white; border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+        <p style="font-size: 15px; margin-top: 0;">Hola,</p>
+        <p style="font-size: 15px; line-height: 1.6;">
+          Un invitado ha reservado un regalo en el sitio web:
+        </p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+          <tr style="border-bottom: 1px solid #f4eae1;">
+            <td style="padding: 8px 0; color: #726362; width: 150px;">Regalo:</td>
+            <td style="padding: 8px 0; font-weight: bold; color: #b5828c; font-size: 16px;">${giftName}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f4eae1;">
+            <td style="padding: 8px 0; color: #726362;">Reservado por:</td>
+            <td style="padding: 8px 0; font-weight: bold;">${guestName}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f4eae1;">
+            <td style="padding: 8px 0; color: #726362;">Correo del invitado:</td>
+            <td style="padding: 8px 0;">${guestEmail}</td>
+          </tr>
+        </table>
+        
+        <div style="text-align: center; margin-top: 25px;">
+          <a href="https://babyshower-vert.vercel.app/admin" style="display: inline-block; background-color: #b5828c; color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: bold;">Ver Panel de Administración</a>
+        </div>
+      </div>
+    </div>
+  `;
+}

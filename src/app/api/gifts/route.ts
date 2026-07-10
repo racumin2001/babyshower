@@ -54,6 +54,20 @@ export async function POST(request: Request) {
             };
             const html = getGiftReservationEmailHtml(reservedBy.trim(), [gift.name], eventDetails);
             await sendEmail(reservedEmail.trim(), '¡Muchas Gracias por tu Regalo! 🎁', html);
+
+            // Notify organizers
+            if (config.organizerEmails) {
+              const emailList = config.organizerEmails.split(',').map((e: any) => e.trim()).filter(Boolean);
+              if (emailList.length > 0) {
+                const { getOrganizerGiftNotificationEmailHtml } = await import('@/lib/email');
+                const notificationHtml = getOrganizerGiftNotificationEmailHtml(reservedBy.trim(), reservedEmail.trim(), gift.name);
+                await Promise.all(
+                  emailList.map((orgEmail: string) =>
+                    sendEmail(orgEmail, `🎁 Regalo Reservado: ${gift.name} por ${reservedBy.trim()}`, notificationHtml)
+                  )
+                );
+              }
+            }
           } catch (emailErr) {
             console.error('Error sending confirmation email:', emailErr);
           }
@@ -134,6 +148,20 @@ export async function POST(request: Request) {
             };
             const html = getGiftReservationEmailHtml(reservedBy.trim(), [newGift.name], eventDetails);
             await sendEmail(reservedEmail.trim(), '¡Muchas Gracias por tu Regalo! 🎁', html);
+
+            // Notify organizers
+            if (config.organizerEmails) {
+              const emailList = config.organizerEmails.split(',').map((e: any) => e.trim()).filter(Boolean);
+              if (emailList.length > 0) {
+                const { getOrganizerGiftNotificationEmailHtml } = await import('@/lib/email');
+                const notificationHtml = getOrganizerGiftNotificationEmailHtml(reservedBy.trim(), reservedEmail.trim(), newGift.name);
+                await Promise.all(
+                  emailList.map((orgEmail: string) =>
+                    sendEmail(orgEmail, `🎁 Regalo Reservado: ${newGift.name} por ${reservedBy.trim()}`, notificationHtml)
+                  )
+                );
+              }
+            }
           } catch (emailErr) {
             console.error('Error sending surprise confirmation email:', emailErr);
           }

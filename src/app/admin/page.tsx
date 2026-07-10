@@ -9,6 +9,7 @@ interface EventConfig {
   locationName: string;
   locationAddress: string;
   locationMapUrl: string;
+  organizerEmails?: string;
 }
 
 interface RSVP {
@@ -43,6 +44,7 @@ export default function Admin() {
     locationName: '',
     locationAddress: '',
     locationMapUrl: '',
+    organizerEmails: '',
   });
   
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
@@ -270,6 +272,29 @@ export default function Admin() {
     document.body.removeChild(link);
   };
 
+  // Delete RSVP
+  const handleDeleteRsvp = async (rsvpId: string, guestName: string) => {
+    if (!confirm(`¿Estás seguro de eliminar a "${guestName}" de la lista de invitados?`)) return;
+
+    try {
+      const res = await fetch(`/api/rsvps?id=${rsvpId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-admin-password': password,
+        },
+      });
+
+      if (res.ok) {
+        setRsvps(prev => prev.filter(r => r.id !== rsvpId));
+      } else {
+        alert('No se pudo eliminar al invitado.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de red al intentar eliminar.');
+    }
+  };
+
   // Password Prompt screen (Not logged in)
   if (!isAuthenticated) {
     return (
@@ -415,6 +440,20 @@ export default function Admin() {
                 </div>
               </div>
 
+              <div className="form-group" style={{ marginTop: '16px' }}>
+                <label className="form-label">Correos de los Organizadores</label>
+                <input
+                  type="text"
+                  placeholder="Ej. mama@email.com, papa@email.com (separados por coma)"
+                  className="form-control"
+                  value={config.organizerEmails || ''}
+                  onChange={e => setConfig({ ...config, organizerEmails: e.target.value })}
+                />
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  A estos correos les llegará una notificación automática cuando haya un registro (RSVP) o reserva de regalo.
+                </p>
+              </div>
+
               {configStatus && (
                 <div style={{ 
                   padding: '12px 16px', 
@@ -475,6 +514,7 @@ export default function Admin() {
                     <th style={{ padding: '12px' }}>Contacto</th>
                     <th style={{ padding: '12px' }}>Mensaje</th>
                     <th style={{ padding: '12px' }}>Fecha Registro</th>
+                    <th style={{ padding: '12px' }}>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -503,6 +543,15 @@ export default function Admin() {
                       </td>
                       <td style={{ padding: '12px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         {new Date(rsvp.createdAt).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <button
+                          onClick={() => handleDeleteRsvp(rsvp.id, rsvp.name)}
+                          className="btn btn-outline"
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', color: 'var(--danger-color)', borderColor: 'rgba(214, 40, 40, 0.3)' }}
+                        >
+                          Eliminar
+                        </button>
                       </td>
                     </tr>
                   ))}

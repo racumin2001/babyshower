@@ -10,6 +10,7 @@ export interface EventConfig {
   locationAddress: string;
   locationMapUrl: string;
   adminPassword?: string;
+  organizerEmails?: string;
 }
 
 export interface RSVP {
@@ -85,7 +86,8 @@ const DEFAULT_CONFIG: EventConfig = {
   locationName: '',
   locationAddress: '',
   locationMapUrl: '',
-  adminPassword: 'admin123',
+  adminPassword: 'Mil140397#',
+  organizerEmails: '',
 };
 
 // JSON database settings
@@ -117,6 +119,11 @@ function initJsonDb(): Schema {
     // Ensure structure is correct
     if (!parsed.config || !parsed.rsvps || !parsed.gifts) {
       throw new Error('Invalid structure');
+    }
+    // Migrate default password in JSON DB too
+    if (parsed.config.adminPassword === 'admin123') {
+      parsed.config.adminPassword = 'Mil140397#';
+      writeJsonDb(parsed);
     }
     return parsed;
   } catch (e) {
@@ -198,6 +205,20 @@ async function initPostgres() {
   const configCheck = await pool.query('SELECT count(*) FROM bs_config');
   if (parseInt(configCheck.rows[0].count) === 0) {
     await pool.query('INSERT INTO bs_config (key, value) VALUES ($1, $2)', ['config_data', JSON.stringify(DEFAULT_CONFIG)]);
+  } else {
+    // If it exists but still has default password 'admin123', update it to 'Mil140397#'
+    const existingConfigRes = await pool.query("SELECT value FROM bs_config WHERE key = 'config_data'");
+    if (existingConfigRes.rows.length > 0) {
+      try {
+        const configData = JSON.parse(existingConfigRes.rows[0].value);
+        if (configData.adminPassword === 'admin123') {
+          configData.adminPassword = 'Mil140397#';
+          await pool.query("UPDATE bs_config SET value = $1 WHERE key = 'config_data'", [JSON.stringify(configData)]);
+        }
+      } catch (e) {
+        console.error('Error migrating default password:', e);
+      }
+    }
   }
 
   // Seed default gifts if empty
@@ -311,6 +332,23 @@ export async function addRsvp(rsvp: Omit<RSVP, 'id' | 'createdAt'>): Promise<RSV
   }
 
   return newRsvp;
+}
+
+export async function deleteRsvp(rsvpId: string): Promise<boolean> {
+  await ensureDbInitialized();
+  if (pool) {
+    const res = await pool.query('DELETE FROM bs_rsvps WHERE id = $1', [rsvpId]);
+    return (res.rowCount ?? 0) > 0;
+  } else {
+    const data = initJsonDb();
+    const initialLength = data.rsvps.length;
+    data.rsvps = data.rsvps.filter(r => r.id !== rsvpId);
+    if (data.rsvps.length < initialLength) {
+      writeJsonDb(data);
+      return true;
+    }
+    return false;
+  }
 }
 
 export async function getGifts(): Promise<Gift[]> {
