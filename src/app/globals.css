@@ -33,8 +33,8 @@
 body {
   font-family: var(--font-sans);
   color: var(--text-main);
-  background-image: linear-gradient(rgba(245, 249, 252, 0.88), rgba(235, 242, 247, 0.88)), url('/pastel_jungle_bg.png');
-  background-size: 320px;
+  background-image: linear-gradient(rgba(245, 249, 252, 0.82), rgba(235, 242, 247, 0.82)), url('/pastel_blue_floral_bg.png');
+  background-size: 380px;
   background-repeat: repeat;
   background-attachment: fixed;
   min-height: 100vh;
