@@ -442,58 +442,104 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="container animate-fade-in" style={{ padding: '60px 24px 40px 24px', textAlign: 'center' }}>
-        <span style={{ 
-          fontSize: '0.85rem', 
-          fontWeight: 600, 
-          letterSpacing: '0.2em', 
-          textTransform: 'uppercase', 
-          color: 'var(--color-primary-dark)',
-          display: 'block',
-          marginBottom: '12px'
+      <section className="container animate-fade-in" style={{ padding: '60px 24px 40px 24px' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '40px',
+          flexWrap: 'wrap-reverse'
         }}>
-          ¡Estamos de fiesta!
-        </span>
-        <h1 style={{ fontSize: '3rem', lineHeight: '1.2', color: 'var(--text-main)', marginBottom: '16px' }}>
-          Baby Shower
-        </h1>
-        <p style={{ 
-          fontFamily: 'var(--font-serif)', 
-          fontSize: '1.4rem', 
-          color: 'var(--text-muted)', 
-          maxWidth: '650px', 
-          margin: '0 auto 36px auto',
-          fontStyle: 'italic'
-        }}>
-          Esperando con amor y alegría la llegada de nuestro bebé
-        </p>
-
-        {/* Countdown component */}
-        {loading ? (
-          <div style={{ minHeight: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ width: '30px', height: '30px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          </div>
-        ) : timeLeft ? (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', margin: '20px auto 40px auto', maxWidth: '500px' }}>
-            {[
-              { label: 'Días', val: timeLeft.days },
-              { label: 'Horas', val: timeLeft.hours },
-              { label: 'Minutos', val: timeLeft.minutes },
-              { label: 'Segundos', val: timeLeft.seconds },
-            ].map((item, idx) => (
-              <div key={idx} className="glass-card" style={{ flex: '1', minWidth: '90px', padding: '16px 12px', borderRadius: '16px', background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(229,152,155,0.2)' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--color-primary-dark)', lineHeight: '1.1' }}>{item.val}</div>
-                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginTop: '4px' }}>{item.label}</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="glass-card" style={{ maxWidth: '500px', margin: '0 auto 40px auto', padding: '20px', borderRadius: '16px', background: 'rgba(255,255,255,0.7)', border: '1px dashed var(--color-primary)' }}>
-            <p style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.95rem' }}>
-              ✨ La fecha y hora exactas se confirmarán muy pronto. ¡Mantente atento! ✨
+          {/* Left Column: Text Content */}
+          <div style={{ flex: '1.2', minWidth: '300px' }}>
+            <span style={{ 
+              fontSize: '0.85rem', 
+              fontWeight: 600, 
+              letterSpacing: '0.2em', 
+              textTransform: 'uppercase', 
+              color: 'var(--color-primary-dark)',
+              display: 'block',
+              marginBottom: '12px'
+            }}>
+              ¡Estamos de fiesta!
+            </span>
+            <h1 style={{ fontSize: '3.5rem', lineHeight: '1.1', color: 'var(--text-main)', marginBottom: '16px', fontFamily: 'var(--font-serif)' }}>
+              Baby Shower
+            </h1>
+            <p style={{ 
+              fontFamily: 'var(--font-serif)', 
+              fontSize: '1.4rem', 
+              color: 'var(--text-muted)', 
+              marginBottom: '36px',
+              fontStyle: 'italic',
+              lineHeight: '1.5'
+            }}>
+              Esperando con amor y alegría la llegada de nuestro bebé
             </p>
+
+            {/* Countdown component */}
+            {loading ? (
+              <div style={{ minHeight: '100px', display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '30px', height: '30px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              </div>
+            ) : timeLeft ? (
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', margin: '20px 0 40px 0', maxWidth: '500px' }}>
+                {[
+                  { label: 'Días', val: timeLeft.days },
+                  { label: 'Horas', val: timeLeft.hours },
+                  { label: 'Minutos', val: timeLeft.minutes },
+                  { label: 'Segundos', val: timeLeft.seconds },
+                ].map((item, idx) => (
+                  <div key={idx} className="glass-card" style={{ flex: '1', minWidth: '80px', padding: '16px 12px', borderRadius: '16px', background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(229,152,155,0.2)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 600, color: 'var(--color-primary-dark)', lineHeight: '1.1' }}>{item.val}</div>
+                    <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginTop: '4px' }}>{item.label}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="glass-card" style={{ maxWidth: '500px', margin: '0 0 40px 0', padding: '20px', borderRadius: '16px', background: 'rgba(255,255,255,0.7)', border: '1px dashed var(--color-primary)', textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.95rem' }}>
+                  ✨ La fecha y hora exactas se confirmarán muy pronto. ¡Mantente atento! ✨
+                </p>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Right Column: Illustration Card */}
+          <div style={{ flex: '0.8', display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: '280px' }}>
+            <div 
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: '360px',
+                aspectRatio: '1',
+                borderRadius: '24px',
+                overflow: 'hidden',
+                boxShadow: '0 20px 40px rgba(229, 152, 155, 0.22)',
+                border: '8px solid white',
+                background: 'white',
+                transform: 'rotate(-2deg)',
+                transition: 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'rotate(2deg) scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 30px 60px rgba(229, 152, 155, 0.35)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'rotate(-2deg) scale(1)';
+                e.currentTarget.style.boxShadow = '0 20px 40px rgba(229, 152, 155, 0.22)';
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src="/cute_baby_animals.png" 
+                alt="Bebé oso y león de peluche" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Event Details Section */}
