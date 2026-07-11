@@ -533,8 +533,8 @@ export default function Home() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
-                src="/cute_baby_animals.png" 
-                alt="Bebé oso y león de peluche" 
+                src="/cute_baby_lion.png" 
+                alt="Bebé leoncito de peluche" 
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </div>

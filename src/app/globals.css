@@ -2,26 +2,26 @@
   --font-serif: var(--font-playfair), Georgia, serif;
   --font-sans: var(--font-inter), sans-serif;
 
-  --color-primary: #e5989b; /* Soft blush pink */
-  --color-primary-light: #ffcdb2; /* Very soft peach */
-  --color-primary-dark: #b5828c; /* Dusty mauve */
+  --color-primary: #7cb3d6; /* Soft pastel baby blue */
+  --color-primary-light: #d2e5f2; /* Light sky blue */
+  --color-primary-dark: #4a83a6; /* Deep baby blue */
   
   --color-secondary: #a4ac96; /* Eucalyptus green */
   --color-secondary-light: #d8e2dc; /* Pale sage */
   
-  --color-accent: #e8a598; /* Warm peach */
+  --color-accent: #b0c4de; /* Light steel blue */
   --color-accent-gold: #d8b28f; /* Soft gold accent */
   
-  --bg-primary: #fbf9f6; /* Warm cream */
-  --bg-secondary: #f4eae1; /* Soft linen */
-  --bg-gradient: linear-gradient(135deg, #fbf9f6 0%, #f4eae1 100%);
+  --bg-primary: #f5f9fc; /* Very soft pastel blue-cream */
+  --bg-secondary: #ebf2f7; /* Soft cool linen */
+  --bg-gradient: linear-gradient(135deg, #f5f9fc 0%, #ebf2f7 100%);
   
-  --text-main: #3a3232; /* Warm charcoal */
-  --text-muted: #726362; /* Muted earth grey */
+  --text-main: #2b3a4a; /* Deep slate blue */
+  --text-muted: #5e6f80; /* Muted slate grey */
   
-  --card-bg: rgba(255, 255, 255, 0.85);
-  --card-border: rgba(229, 152, 155, 0.15);
-  --card-shadow: 0 10px 30px rgba(58, 50, 50, 0.05);
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(124, 179, 214, 0.15);
+  --card-shadow: 0 10px 30px rgba(43, 58, 74, 0.05);
 }
 
 * {
@@ -33,7 +33,9 @@
 body {
   font-family: var(--font-sans);
   color: var(--text-main);
-  background: var(--bg-primary);
+  background-image: linear-gradient(rgba(245, 249, 252, 0.88), rgba(235, 242, 247, 0.88)), url('/pastel_jungle_bg.png');
+  background-size: 320px;
+  background-repeat: repeat;
   background-attachment: fixed;
   min-height: 100vh;
   line-height: 1.6;
