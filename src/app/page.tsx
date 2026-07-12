@@ -427,7 +427,7 @@ export default function Home() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-gradient)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
       {/* Header bar */}
       <header className="header container" style={{ borderBottom: '1px solid rgba(229, 152, 155, 0.1)' }}>
         <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

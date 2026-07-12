@@ -298,7 +298,7 @@ export default function Admin() {
   // Password Prompt screen (Not logged in)
   if (!isAuthenticated) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-gradient)', padding: '24px' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', padding: '24px' }}>
         <div className="glass-card" style={{ maxWidth: '420px', width: '100%', padding: '36px', textAlign: 'center' }}>
           <div style={{ marginBottom: '24px' }}>
             <div style={{ background: 'var(--color-primary-light)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto', color: 'var(--color-primary-dark)' }}>
@@ -346,7 +346,7 @@ export default function Admin() {
 
   // Admin Panel Dashboard (Logged in)
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-gradient)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
       {/* Admin Navbar */}
       <header className="header container" style={{ borderBottom: '1px solid rgba(229, 152, 155, 0.1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
