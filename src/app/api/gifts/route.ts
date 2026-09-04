@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getGifts, reserveGift, unreserveGift, addGift, deleteGift, getConfig } from '@/lib/db';
+import { getGifts, reserveGift, unreserveGift, addGift, deleteGift, getConfig, formatEventLocation } from '@/lib/db';
 import { sendEmail, getGiftReservationEmailHtml } from '@/lib/email';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
     const gifts = await getGifts();
-    return NextResponse.json(gifts);
+    return NextResponse.json(gifts, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    });
   } catch (error) {
     console.error('Error fetching gifts:', error);
     return NextResponse.json({ error: 'Failed to fetch gifts' }, { status: 500 });
@@ -49,7 +53,7 @@ export async function POST(request: Request) {
             const eventDetails = {
               date: config.date,
               time: config.time || 'Por definir',
-              location: config.locationName ? `${config.locationName} (${config.locationAddress})` : config.locationAddress || 'Por definir',
+              location: formatEventLocation(config),
               mapUrl: config.locationMapUrl || undefined,
             };
             const html = getGiftReservationEmailHtml(reservedBy.trim(), [gift.name], eventDetails);
@@ -143,7 +147,7 @@ export async function POST(request: Request) {
             const eventDetails = {
               date: config.date,
               time: config.time || 'Por definir',
-              location: config.locationName ? `${config.locationName} (${config.locationAddress})` : config.locationAddress || 'Por definir',
+              location: formatEventLocation(config),
               mapUrl: config.locationMapUrl || undefined,
             };
             const html = getGiftReservationEmailHtml(reservedBy.trim(), [newGift.name], eventDetails);

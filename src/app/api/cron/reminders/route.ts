@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getConfig, getGifts, markReminderSent } from '@/lib/db';
+import { getConfig, getGifts, markReminderSent, formatEventLocation } from '@/lib/db';
 import { sendEmail, getReminderEmailHtml } from '@/lib/email';
 
 export async function GET(request: Request) {
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     const eventDetails = {
       date: config.date,
       time: config.time || 'Por definir',
-      location: config.locationName ? `${config.locationName} (${config.locationAddress})` : config.locationAddress || 'Por definir',
+      location: formatEventLocation(config),
       mapUrl: config.locationMapUrl || undefined,
     };
 

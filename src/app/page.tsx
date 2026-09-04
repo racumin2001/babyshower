@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { SkyDecor } from '@/components/SkyDecor';
+import { GiftIdeaArt } from '@/components/GiftIdeaArt';
 
 interface EventConfig {
   date: string;
   time: string;
   locationName: string;
   locationAddress: string;
+  locationNotes?: string;
   locationMapUrl: string;
 }
 
@@ -50,8 +52,7 @@ export default function Home() {
   // Countdown timer state
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
 
-  // Tab control
-  const [activeGiftTab, setActiveGiftTab] = useState<'surprise' | 'diapers' | 'catalog'>('surprise');
+  const [activeGiftTab, setActiveGiftTab] = useState<'surprise' | 'diapers' | 'catalog' | 'have'>('surprise');
 
   // Surprise Gift states
   const [surpriseModalOpen, setSurpriseModalOpen] = useState(false);
@@ -73,9 +74,10 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
+        const cacheBust = Date.now();
         const [configRes, giftsRes] = await Promise.all([
-          fetch('/api/config'),
-          fetch('/api/gifts')
+          fetch(`/api/config?ts=${cacheBust}`, { cache: 'no-store' }),
+          fetch(`/api/gifts?ts=${cacheBust}`, { cache: 'no-store' })
         ]);
         
         if (configRes.ok && giftsRes.ok) {
@@ -100,30 +102,40 @@ export default function Home() {
       return;
     }
 
-    const targetDate = new Date(config.date);
-    if (isNaN(targetDate.getTime())) {
+    const [year, month, day] = config.date.split('-').map(Number);
+    const timeMatch = config.time?.match(/(\d{1,2}):(\d{2})/);
+    const hours = timeMatch ? Number(timeMatch[1]) : 0;
+    const minutes = timeMatch ? Number(timeMatch[2]) : 0;
+    const targetDate = new Date(year, month - 1, day, hours, minutes);
+    if (!year || !month || !day || isNaN(targetDate.getTime())) {
       setTimeLeft(null);
       return;
     }
 
-    const interval = setInterval(() => {
-      const now = new Date();
-      const difference = targetDate.getTime() - now.getTime();
+    const updateCountdown = () => {
+      const difference = targetDate.getTime() - Date.now();
 
       if (difference <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        clearInterval(interval);
-      } else {
-        const d = Math.floor(difference / (1000 * 60 * 60 * 24));
-        const h = Math.floor((difference / (1000 * 60 * 60)) % 24);
-        const m = Math.floor((difference / 1000 / 60) % 60);
-        const s = Math.floor((difference / 1000) % 60);
-        setTimeLeft({ days: d, hours: h, minutes: m, seconds: s });
+        return false;
       }
+
+      setTimeLeft({
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((difference / 1000 / 60) % 60),
+        seconds: Math.floor((difference / 1000) % 60),
+      });
+      return true;
+    };
+
+    updateCountdown();
+    const interval = setInterval(() => {
+      if (!updateCountdown()) clearInterval(interval);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [config?.date]);
+  }, [config?.date, config?.time]);
 
   // Handle RSVP Submit
   const handleRsvpSubmit = async (e: React.FormEvent) => {
@@ -370,7 +382,7 @@ export default function Home() {
       code: 'rn',
       title: 'Talla RN (Recién Nacido)',
       description: 'RN: Vienen entre 34 y 40 pañales por paquete.',
-      total: 8,
+      total: 4,
       prefix: 'diaper_rn_',
     },
     {
@@ -401,6 +413,27 @@ export default function Home() {
       total: 12,
       prefix: 'diaper_wipes_',
     },
+    {
+      code: 'cream',
+      title: 'Crema para coceduras',
+      description: 'Crema o pasta para prevenir y calmar rozaduras del pañal.',
+      total: 4,
+      prefix: 'diaper_cream_',
+    },
+    {
+      code: 'shampoo',
+      title: 'Shampoo para bebé',
+      description: 'Shampoo suave para el cabello y el cuero cabelludo del bebé.',
+      total: 4,
+      prefix: 'diaper_shampoo_',
+    },
+    {
+      code: 'balsam',
+      title: 'Bálsamo para bebé',
+      description: 'Bálsamo hidratante para piel sensible o labios.',
+      total: 4,
+      prefix: 'diaper_balsam_',
+    },
   ];
 
   // Helper to get diaper stats
@@ -426,190 +459,142 @@ export default function Home() {
     };
   };
 
+  const mapQuery = config?.locationAddress || config?.locationName || '';
+  const mapEmbed = mapQuery
+    ? `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`
+    : null;
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
-      {/* Header bar */}
-      <header className="header container" style={{ borderBottom: '1px solid rgba(229, 152, 155, 0.1)' }}>
-        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: 'var(--color-primary)' }}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-          </svg>
-          <span style={{ fontWeight: 600 }}>Baby Shower</span>
-        </div>
-        <Link href="/admin" className="btn btn-secondary" style={{ padding: '8px 18px', fontSize: '0.85rem' }}>
-          Panel Admin
-        </Link>
+    <div>
+      <a className="skip-link" href="#contenido">Ir al contenido</a>
+
+      <header className="invite-nav">
+        <span className="invite-mark">Baby Shower</span>
+        <nav className="invite-nav-links" aria-label="Secciones">
+          <a href="#evento">El día</a>
+          <a href="#rsvp">Confirmar</a>
+          <a href="#regalos">Regalos</a>
+        </nav>
       </header>
 
-      {/* Hero Section */}
-      <section className="container animate-fade-in" style={{ padding: '60px 24px 40px 24px' }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '40px',
-          flexWrap: 'wrap-reverse'
-        }}>
-          {/* Left Column: Text Content */}
-          <div style={{ flex: '1.2', minWidth: '300px' }}>
-            <span style={{ 
-              fontSize: '0.85rem', 
-              fontWeight: 600, 
-              letterSpacing: '0.2em', 
-              textTransform: 'uppercase', 
-              color: 'var(--color-primary-dark)',
-              display: 'block',
-              marginBottom: '12px'
-            }}>
-              ¡Estamos de fiesta!
-            </span>
-            <h1 style={{ fontSize: '3.5rem', lineHeight: '1.1', color: 'var(--text-main)', marginBottom: '16px', fontFamily: 'var(--font-serif)' }}>
-              Baby Shower
-            </h1>
-            <p style={{ 
-              fontFamily: 'var(--font-serif)', 
-              fontSize: '1.4rem', 
-              color: 'var(--text-muted)', 
-              marginBottom: '36px',
-              fontStyle: 'italic',
-              lineHeight: '1.5'
-            }}>
-              Esperando con amor y alegría la llegada de nuestro bebé
-            </p>
-
-            {/* Countdown component */}
-            {loading ? (
-              <div style={{ minHeight: '100px', display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '30px', height: '30px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              </div>
-            ) : timeLeft ? (
-              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', margin: '20px 0 40px 0', maxWidth: '500px' }}>
-                {[
-                  { label: 'Días', val: timeLeft.days },
-                  { label: 'Horas', val: timeLeft.hours },
-                  { label: 'Minutos', val: timeLeft.minutes },
-                  { label: 'Segundos', val: timeLeft.seconds },
-                ].map((item, idx) => (
-                  <div key={idx} className="glass-card" style={{ flex: '1', minWidth: '80px', padding: '16px 12px', borderRadius: '16px', background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(229,152,155,0.2)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 600, color: 'var(--color-primary-dark)', lineHeight: '1.1' }}>{item.val}</div>
-                    <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginTop: '4px' }}>{item.label}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="glass-card" style={{ maxWidth: '500px', margin: '0 0 40px 0', padding: '20px', borderRadius: '16px', background: 'rgba(255,255,255,0.7)', border: '1px dashed var(--color-primary)', textAlign: 'center' }}>
-                <p style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.95rem' }}>
-                  ✨ La fecha y hora exactas se confirmarán muy pronto. ¡Mantente atento! ✨
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Illustration Card */}
-          <div style={{ flex: '0.8', display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: '280px' }}>
-            <div 
-              style={{
-                position: 'relative',
-                width: '100%',
-                maxWidth: '360px',
-                aspectRatio: '1',
-                borderRadius: '24px',
-                overflow: 'hidden',
-                boxShadow: '0 20px 40px rgba(229, 152, 155, 0.22)',
-                border: '8px solid white',
-                background: 'white',
-                transform: 'rotate(-2deg)',
-                transition: 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'rotate(2deg) scale(1.05)';
-                e.currentTarget.style.boxShadow = '0 30px 60px rgba(229, 152, 155, 0.35)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'rotate(-2deg) scale(1)';
-                e.currentTarget.style.boxShadow = '0 20px 40px rgba(229, 152, 155, 0.22)';
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src="/cute_baby_lion.png" 
-                alt="Bebé leoncito de peluche" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+      <section className="hero animate-fade-in">
+        <SkyDecor />
+        <div className="plane-scene">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/bear-plane.png?v=2" alt="Osito aviador volando en un avioncito" />
+        </div>
+        <div className="hero-copy">
+          <p className="hero-script">Un bebé está en camino</p>
+          <p className="hero-welcome">Bienvenidos a</p>
+          <h1>Baby Shower</h1>
+          {timeLeft ? (
+            <div className="countdown">
+              {[
+                { label: 'Días', val: timeLeft.days },
+                { label: 'Horas', val: timeLeft.hours },
+                { label: 'Minutos', val: timeLeft.minutes },
+                { label: 'Segundos', val: timeLeft.seconds },
+              ].map((item) => (
+                <div key={item.label} className="countdown-pill">
+                  <strong>{String(item.val).padStart(2, '0')}</strong>
+                  <span>{item.label}</span>
+                </div>
+              ))}
             </div>
-          </div>
+          ) : config?.date ? (
+            <p className="date-pending">
+              {new Date(config.date).toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                timeZone: 'UTC',
+              })}
+              {config.time ? ` · ${config.time}` : ''}
+            </p>
+          ) : (
+            <p className="date-pending">La fecha se confirmará muy pronto</p>
+          )}
         </div>
       </section>
 
-      {/* Event Details Section */}
-      {!loading && config && (config.date || config.locationName) && (
-        <section className="container" style={{ marginBottom: '60px' }}>
-          <div className="grid-2">
-            {config.date && (
-              <div className="glass-card" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-                <div style={{ background: 'var(--color-primary-light)', padding: '12px', borderRadius: '12px', color: 'var(--color-primary-dark)' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <main id="contenido">
+      {!loading && config && (config.date || config.time || config.locationName) && (
+        <section id="evento" className="section container">
+          <h2 className="section-title">El gran día</h2>
+          <p className="section-lead">Los detalles de nuestra celebración</p>
+          <div className="detail-grid">
+            {(config.date || config.time) && (
+              <article className="cloud-card detail-card">
+                <div className="detail-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                     <line x1="16" y1="2" x2="16" y2="6" />
                     <line x1="8" y1="2" x2="8" y2="6" />
                     <line x1="3" y1="10" x2="21" y2="10" />
                   </svg>
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', marginBottom: '6px' }}>Fecha y Hora</h3>
-                  <p style={{ color: 'var(--text-main)', fontWeight: 500 }}>
+                <h3>{config.date ? 'Fecha y hora' : 'Hora'}</h3>
+                {config.date && (
+                  <p>
                     {new Date(config.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
                   </p>
-                  {config.time && <p style={{ color: 'var(--text-muted)' }}>Hora: {config.time}</p>}
-                </div>
-              </div>
+                )}
+                {config.time && <p style={{ color: 'var(--muted)' }}>{config.time}</p>}
+              </article>
             )}
 
             {config.locationName && (
-              <div className="glass-card" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-                <div style={{ background: 'var(--color-primary-light)', padding: '12px', borderRadius: '12px', color: 'var(--color-primary-dark)' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <article className="cloud-card detail-card">
+                <div className="detail-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', marginBottom: '6px' }}>Ubicación</h3>
-                  <p style={{ color: 'var(--text-main)', fontWeight: 500 }}>{config.locationName}</p>
-                  {config.locationAddress && <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '8px' }}>{config.locationAddress}</p>}
-                  {config.locationMapUrl && (
-                    <a 
-                      href={config.locationMapUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="btn btn-secondary" 
-                      style={{ padding: '6px 14px', fontSize: '0.8rem', display: 'inline-flex', gap: '6px', alignItems: 'center' }}
-                    >
-                      Ver en Google Maps
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                    </a>
-                  )}
-                </div>
-              </div>
+                <h3>Lugar</h3>
+                <p>{config.locationName}</p>
+                {config.locationAddress && <p style={{ color: 'var(--muted)' }}>{config.locationAddress}</p>}
+                {config.locationNotes && <p className="venue-note">{config.locationNotes}</p>}
+              </article>
             )}
           </div>
         </section>
       )}
 
-      {/* RSVP Section */}
-      <section className="container" style={{ marginBottom: '60px' }}>
-        <div className="glass-card" style={{ maxWidth: '680px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <h2 style={{ fontSize: '2rem', marginBottom: '8px' }}>Confirmar Asistencia</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-              Por favor dinos si podrás acompañarnos en este día tan especial
-            </p>
+      {!loading && config && (config.locationName || config.locationAddress) && (
+        <section id="mapa" className="section container">
+          <h2 className="section-title">Cómo llegar</h2>
+          <p className="section-lead">
+            Encuentra fácilmente el edificio. Sube a los quinchos de la azotea: en el ascensor, marca PM.
+          </p>
+          {mapEmbed && (
+            <div className="map-frame">
+              <iframe
+                src={mapEmbed}
+                title="Mapa del lugar del baby shower"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          )}
+          <div className="center-action">
+            <a
+              href={config.locationMapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary"
+            >
+              Abrir en Google Maps
+            </a>
           </div>
+        </section>
+      )}
+
+      <section id="rsvp" className="section container">
+        <h2 className="section-title">Confirma tu asistencia</h2>
+        <p className="section-lead">Dinos si podrás acompañarnos en este día tan especial</p>
+        <div className="cloud-card" style={{ maxWidth: '680px', margin: '0 auto' }}>
 
           <form onSubmit={handleRsvpSubmit}>
             <div className="form-group">
@@ -696,107 +681,140 @@ export default function Home() {
             </div>
 
             {rsvpStatus && (
-              <div style={{ 
-                padding: '12px 16px', 
-                borderRadius: '12px', 
-                marginBottom: '20px',
-                fontSize: '0.9rem',
-                backgroundColor: rsvpStatus.type === 'success' ? '#ebf6ed' : '#fdeded',
-                color: rsvpStatus.type === 'success' ? '#2e7d32' : '#d32f2f',
-                border: `1px solid ${rsvpStatus.type === 'success' ? '#c8e6c9' : '#ffcdd2'}`
-              }}>
+              <div className="status-banner" data-type={rsvpStatus.type}>
                 {rsvpStatus.message}
               </div>
             )}
 
-            <div style={{ textAlign: 'center' }}>
-              <button type="submit" disabled={submittingRsvp} className="btn btn-primary" style={{ width: '220px' }}>
-                {submittingRsvp ? 'Registrando...' : 'Confirmar Asistencia'}
+            <div className="center-action">
+              <button type="submit" disabled={submittingRsvp} className="btn btn-primary">
+                {submittingRsvp ? 'Registrando...' : 'Enviar confirmación'}
               </button>
             </div>
           </form>
         </div>
       </section>
 
-      {/* Gift System Section */}
-      <section className="container" style={{ marginBottom: '80px', flex: '1' }}>
-        {/* Header and description */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <span style={{ 
-            fontSize: '0.85rem', 
-            fontWeight: 600, 
-            letterSpacing: '0.2em', 
-            textTransform: 'uppercase', 
-            color: 'var(--color-primary-dark)',
-            display: 'block',
-            marginBottom: '8px'
-          }}>
-            Mesa de Regalos
-          </span>
-          <h2 style={{ fontSize: '2.5rem', marginBottom: '12px' }}>Lista de Regalos y Pañales</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '700px', margin: '0 auto' }}>
-            Tu presencia es nuestro mayor regalo. Sin embargo, si deseas tener un detalle con nosotros, te compartimos algunas sugerencias y un control de pañales para organizarnos mejor.
-          </p>
-        </div>
+      <section id="regalos" className="section container">
+        <h2 className="section-title">Mesa de regalos</h2>
+        <p className="section-lead">
+          Tu presencia es el mejor regalo. Si quieres un detalle, aquí hay ideas y un control de pañales para organizarnos.
+        </p>
 
-        {/* Tabs navigation */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '40px', flexWrap: 'wrap' }}>
+        <div className="chapter-tabs">
           <button
+            type="button"
             onClick={() => setActiveGiftTab('surprise')}
-            className={`btn ${activeGiftTab === 'surprise' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ padding: '12px 24px', borderRadius: '30px', flex: '1', minWidth: '220px', maxWidth: '280px' }}
+            className="chapter-tab"
+            data-active={activeGiftTab === 'surprise'}
           >
-            🎁 Opción 1: Regalo Sorpresa
+            Regalo sorpresa
           </button>
           <button
+            type="button"
             onClick={() => setActiveGiftTab('diapers')}
-            className={`btn ${activeGiftTab === 'diapers' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ padding: '12px 24px', borderRadius: '30px', flex: '1', minWidth: '220px', maxWidth: '280px' }}
+            className="chapter-tab"
+            data-active={activeGiftTab === 'diapers'}
           >
-            👶 Opción 2: Pañales y Toallitas
+            Pañales y cuidado
           </button>
           <button
+            type="button"
             onClick={() => setActiveGiftTab('catalog')}
-            className={`btn ${activeGiftTab === 'catalog' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ padding: '12px 24px', borderRadius: '30px', flex: '1', minWidth: '220px', maxWidth: '280px' }}
+            className="chapter-tab"
+            data-active={activeGiftTab === 'catalog'}
           >
-            🧸 Opción 3: Ideas de Regalos
+            Ideas de regalos
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveGiftTab('have')}
+            className="chapter-tab"
+            data-active={activeGiftTab === 'have'}
+          >
+            Ya tenemos
           </button>
         </div>
 
-        {/* 1. Surprise Gift Tab (Opción 1) */}
-        {activeGiftTab === 'surprise' && (
-          <div className="glass-card" style={{ 
-            background: 'rgba(255, 255, 255, 0.95)', 
-            border: '2px solid var(--color-primary-light)', 
-            padding: '40px 32px', 
-            borderRadius: '24px', 
-            textAlign: 'center',
-            boxShadow: '0 12px 30px rgba(229, 152, 155, 0.1)'
-          }}>
-            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎁</div>
-            <h3 style={{ fontSize: '1.6rem', marginBottom: '12px', color: 'var(--color-primary-dark)' }}>¿Prefieres traer un Regalo Sorpresa?</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '600px', margin: '0 auto 28px auto', lineHeight: '1.7' }}>
-              Nuestras listas son solo sugerencias e ideas de cosas que nos podrían servir para la llegada del bebé. Si tienes en mente otro detalle especial o prefieres traer un regalo sorpresa de tu propia elección, ¡nos encantará! Regístralo haciendo clic aquí abajo.
-            </p>
-            <button 
-              onClick={() => setSurpriseModalOpen(true)}
-              className="btn btn-primary"
-              style={{ padding: '12px 32px', fontSize: '0.95rem' }}
-            >
-              Registrar Regalo Sorpresa
-            </button>
-          </div>
+        {activeGiftTab === 'have' && (
+        <div id="ya-tenemos" className="gift-block cloud-card have-list">
+            <h3>Ya tenemos</h3>
+            <p>Para no repetir, estas cosas ya están en casa:</p>
+            <ul>
+              <li>Coche</li>
+              <li>Silla huevito</li>
+              <li>Silla de auto</li>
+              <li>Gimnasio para bebé</li>
+              <li>Cunas</li>
+              <li>Almohada de colecho</li>
+              <li>Silla de comida</li>
+              <li>Monitor</li>
+              <li>Ropita de 0 a 3 meses</li>
+              <li>Set de bodys</li>
+              <li>Ropita para salir / vestir</li>
+              <li>Medias, gorritos y mitones</li>
+              <li>Mochila pañalera</li>
+              <li>Cepillos de mamadera</li>
+              <li>Extractor de leche</li>
+              <li>Calentador de mamadera</li>
+              <li>Máquina de ruido blanco</li>
+            </ul>
+        </div>
         )}
 
-        {/* 2. Diapers Tab (El Pañalómetro - Opción 2) */}
+        {activeGiftTab === 'surprise' && (
+        <div id="sorpresa" className="gift-block cloud-card" style={{ textAlign: 'center' }}>
+            <h3 style={{ fontSize: '1.4rem', marginBottom: '12px', color: 'var(--blue-deep)' }}>Regalo sorpresa</h3>
+            <p style={{ color: 'var(--muted)', maxWidth: '58ch', margin: '0 auto 20px' }}>
+              Las listas son solo ideas. Si tienes otro detalle en mente, regístralo para que no se repita. Algunas inspiraciones:
+            </p>
+            <figure className="surprise-ideas">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/surprise-gift-ideas.png?v=2"
+                alt="Ejemplos de regalo sorpresa: sábanas, baberos, espejo para auto, cambiador, peluche, sweater, conjunto de invierno, zapatitos, sonajeros y set para comida"
+              />
+              <figcaption>
+                Sábanas, baberos, espejo para el auto, cambiador portátil, peluche, sweater, conjuntos de invierno talla 9 meses, zapatitos, sonajeros y set para comida.
+              </figcaption>
+            </figure>
+            <button
+              type="button"
+              onClick={() => setSurpriseModalOpen(true)}
+              className="btn btn-primary"
+            >
+              Registrar regalo sorpresa
+            </button>
+        </div>
+        )}
+
         {activeGiftTab === 'diapers' && (
-          <div className="glass-card" style={{ padding: '28px', borderRadius: '24px' }}>
+        <div id="panales" className="gift-block cloud-card">
             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-              <h3 style={{ fontSize: '1.75rem', marginBottom: '8px' }}>El Pañalómetro</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '550px', margin: '0 auto' }}>
-                Los pañales son esenciales. Queremos reunir formatos grandes (Hiperpack / Mega). Selecciona una talla y regala un paquete para ayudarnos a completar la meta.
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '8px' }}>Pañales y cuidado</h3>
+              <p style={{ color: 'var(--muted)', maxWidth: '55ch', margin: '0 auto' }}>
+                Buscamos formatos grandes (Hiperpack / Mega) y también cremas, shampoo y bálsamo. Elige un ítem para completar la meta.
               </p>
+            </div>
+
+            <div className="diaper-contacts">
+              <p className="diaper-contacts-lead">
+                Como queremos que ahorres en tu regalo, te dejamos estos contactos que venden pañales baratos:
+              </p>
+              <ul>
+                <li>
+                  <strong>TuPanalExpress</strong>
+                  <a href="tel:+56933068865">+56 9 3306 8865</a>
+                </li>
+                <li>
+                  <strong>BabyFelizPanales</strong>
+                  <a href="tel:+56977778951">+56 9 7777 8951</a>
+                </li>
+                <li>
+                  <strong>StarBaby.cl</strong>
+                  <a href="tel:+56928439005">+56 9 2843 9005</a>
+                </li>
+              </ul>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -805,15 +823,7 @@ export default function Home() {
                 const isCompleted = stats.reservedCount >= diaper.total;
                 
                 return (
-                  <div key={diaper.code} style={{ 
-                    padding: '20px', 
-                    borderRadius: '16px', 
-                    background: 'rgba(255,255,255,0.4)', 
-                    border: '1px solid rgba(229,152,155,0.1)', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    gap: '12px' 
-                  }}>
+                  <div key={diaper.code} className="diaper-row" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
                       <div>
                         <h4 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)' }}>{diaper.title}</h4>
@@ -826,21 +836,8 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div style={{ 
-                      width: '100%', 
-                      height: '10px', 
-                      borderRadius: '5px', 
-                      background: 'rgba(114, 99, 98, 0.1)', 
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{ 
-                        width: `${stats.percentage}%`, 
-                        height: '100%', 
-                        background: 'linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)', 
-                        borderRadius: '5px', 
-                        transition: 'width 0.5s ease-in-out' 
-                      }} />
+                    <div className="cloud-bar" aria-hidden="true">
+                      <span style={{ width: `${stats.percentage}%` }} />
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginTop: '4px' }}>
@@ -857,19 +854,7 @@ export default function Home() {
                       </div>
                       <div>
                         {isCompleted ? (
-                          <span style={{ 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '6px', 
-                            padding: '6px 14px', 
-                            borderRadius: '20px', 
-                            backgroundColor: 'rgba(167, 201, 87, 0.12)', 
-                            color: '#386641', 
-                            fontSize: '0.8rem', 
-                            fontWeight: 600 
-                          }}>
-                            ¡Completado! 🎉
-                          </span>
+                          <span className="done-pill">Completado</span>
                         ) : (
                           <button
                             onClick={() => {
@@ -889,14 +874,13 @@ export default function Home() {
                 );
               })}
             </div>
-          </div>
+        </div>
         )}
 
-        {/* 3. Catalog Tab (Otros Regalos / Sugerencias) */}
         {activeGiftTab === 'catalog' && (
-          <div>
+        <div id="ideas" className="gift-block">
             {/* Search & Filters */}
-            <div className="glass-card" style={{ padding: '20px', borderRadius: '16px', marginBottom: '30px' }}>
+            <div className="cloud-card" style={{ padding: '20px', marginBottom: '30px' }}>
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                 
                 {/* Search Input */}
@@ -946,7 +930,7 @@ export default function Home() {
                       border: 'none',
                       fontSize: '0.8rem',
                       cursor: 'pointer',
-                      backgroundColor: selectedCategory === cat ? 'var(--color-primary-light)' : 'rgba(114, 99, 98, 0.05)',
+                      backgroundColor: selectedCategory === cat ? 'var(--color-primary-light)' : 'rgba(58, 109, 134, 0.06)',
                       color: selectedCategory === cat ? 'var(--color-primary-dark)' : 'var(--text-muted)',
                       fontWeight: selectedCategory === cat ? 600 : 400,
                       whiteSpace: 'nowrap',
@@ -962,73 +946,33 @@ export default function Home() {
             {/* Gift Grid */}
             {loading ? (
               <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                <div style={{ width: '40px', height: '40px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px auto' }} />
+                <div className="loader" style={{ margin: '0 auto 16px' }} />
                 <p style={{ color: 'var(--text-muted)' }}>Cargando catálogo...</p>
               </div>
             ) : filteredGifts.length === 0 ? (
-              <div className="glass-card" style={{ textAlign: 'center', padding: '60px 24px', borderRadius: '20px' }}>
+              <div className="cloud-card" style={{ textAlign: 'center', padding: '60px 24px' }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: 'var(--color-primary-dark)', marginBottom: '16px', opacity: 0.6 }}>
                   <path d="M20 12v10H4V12m16-4v4H4V8m16 0a2 2 0 0 0-2-2h-3.382a2 2 0 0 0-3.236 0H5a2 2 0 0 0-2 2m17 0H3m9 14V8M12 4c-1.333 0-4 1-4 4h8c0-3-2.667-4-4-4z" />
                 </svg>
                 <p style={{ color: 'var(--text-muted)', fontWeight: 500 }}>No encontramos regalos con los filtros seleccionados.</p>
               </div>
             ) : (
-              <div className="grid-3">
+              <div className="gift-grid">
                 {filteredGifts.map(gift => (
-                  <div 
-                    key={gift.id} 
-                    className="glass-card" 
-                    style={{ 
-                      padding: '24px', 
-                      borderRadius: '20px', 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      justifyContent: 'space-between',
-                      border: gift.reservedBy ? '1px solid rgba(114, 99, 98, 0.1)' : '1px solid var(--card-border)',
-                      backgroundColor: gift.reservedBy ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.95)'
-                    }}
+                  <div
+                    key={gift.id}
+                    className={`cloud-card gift-card${gift.reservedBy ? ' is-reserved' : ''}`}
+                    style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                   >
                     <div>
-                      <span style={{ 
-                        fontSize: '0.75rem', 
-                        fontWeight: 600, 
-                        color: 'var(--color-primary-dark)',
-                        background: 'rgba(229, 152, 155, 0.12)',
-                        padding: '4px 10px',
-                        borderRadius: '20px',
-                        display: 'inline-block',
-                        marginBottom: '12px'
-                      }}>
-                        {gift.category}
-                      </span>
-                      
-                      <h3 style={{ 
-                        fontSize: '1.2rem', 
-                        color: gift.reservedBy ? 'var(--text-muted)' : 'var(--text-main)', 
-                        marginBottom: '8px',
-                        textDecoration: gift.reservedBy ? 'line-through' : 'none'
-                      }}>
-                        {gift.name}
-                      </h3>
+                      <GiftIdeaArt id={gift.id} category={gift.category} />
+                      <span className="gift-tag">{gift.category}</span>
+                      <h3>{gift.name}</h3>
                     </div>
 
                     <div style={{ marginTop: '24px' }}>
                       {gift.reservedBy ? (
-                        <div style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '8px', 
-                          padding: '10px 14px', 
-                          borderRadius: '30px', 
-                          backgroundColor: 'rgba(181, 130, 140, 0.08)',
-                          color: 'var(--color-primary-dark)',
-                          fontSize: '0.85rem',
-                          fontWeight: 500
-                        }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-                          </svg>
+                        <div className="reserved-note">
                           <span>Reservado por {gift.reservedBy}</span>
                         </div>
                       ) : (
@@ -1045,15 +989,16 @@ export default function Home() {
                 ))}
               </div>
             )}
-          </div>
+        </div>
         )}
 
         {/* 4. Manage/Change Gift Section (Auto-servicio de liberación) */}
-        <div style={{ textAlign: 'center', marginTop: '50px', borderTop: '1px dashed rgba(114, 99, 98, 0.2)', paddingTop: '30px' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '12px' }}>
-            ¿Ya reservaste un regalo y deseas cambiar tu selección o liberar la reserva?
+        <div className="manage-row">
+          <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '12px' }}>
+            ¿Ya reservaste y quieres cambiar o liberar tu selección?
           </p>
           <button
+            type="button"
             onClick={() => {
               setManageModalOpen(true);
               setLookupName('');
@@ -1062,12 +1007,12 @@ export default function Home() {
               setReleaseStatus(null);
             }}
             className="btn btn-secondary"
-            style={{ padding: '8px 24px', fontSize: '0.85rem' }}
           >
-            Gestionar mis Regalos Reservados
+            Gestionar mis reservas
           </button>
         </div>
       </section>
+      </main>
 
       {/* Reservation Modal */}
       {reservingGift && (
@@ -1132,15 +1077,7 @@ export default function Home() {
               </div>
 
               {reserveStatus && (
-                <div style={{ 
-                  padding: '12px 16px', 
-                  borderRadius: '12px', 
-                  marginBottom: '20px',
-                  fontSize: '0.9rem',
-                  backgroundColor: reserveStatus.type === 'success' ? '#ebf6ed' : '#fdeded',
-                  color: reserveStatus.type === 'success' ? '#2e7d32' : '#d32f2f',
-                  border: `1px solid ${reserveStatus.type === 'success' ? '#c8e6c9' : '#ffcdd2'}`
-                }}>
+                <div className="status-banner" data-type={reserveStatus.type}>
                   {reserveStatus.message}
                 </div>
               )}
@@ -1237,15 +1174,7 @@ export default function Home() {
               </div>
 
               {surpriseStatus && (
-                <div style={{ 
-                  padding: '12px 16px', 
-                  borderRadius: '12px', 
-                  marginBottom: '20px',
-                  fontSize: '0.9rem',
-                  backgroundColor: surpriseStatus.type === 'success' ? '#ebf6ed' : '#fdeded',
-                  color: surpriseStatus.type === 'success' ? '#2e7d32' : '#d32f2f',
-                  border: `1px solid ${surpriseStatus.type === 'success' ? '#c8e6c9' : '#ffcdd2'}`
-                }}>
+                <div className="status-banner" data-type={surpriseStatus.type}>
                   {surpriseStatus.message}
                 </div>
               )}
@@ -1317,15 +1246,7 @@ export default function Home() {
             </form>
 
             {releaseStatus && (
-              <div style={{ 
-                padding: '12px 16px', 
-                borderRadius: '12px', 
-                marginBottom: '20px',
-                fontSize: '0.9rem',
-                backgroundColor: releaseStatus.type === 'success' ? '#ebf6ed' : '#fdeded',
-                color: releaseStatus.type === 'success' ? '#2e7d32' : '#d32f2f',
-                border: `1px solid ${releaseStatus.type === 'success' ? '#c8e6c9' : '#ffcdd2'}`
-              }}>
+              <div className="status-banner" data-type={releaseStatus.type}>
                 {releaseStatus.message}
               </div>
             )}
@@ -1372,20 +1293,9 @@ export default function Home() {
         </div>
       )}
       
-      {/* Footer */}
-      <footer style={{ background: 'white', borderTop: '1px solid rgba(229, 152, 155, 0.1)', padding: '30px 24px', textAlign: 'center' }}>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Hecho con ♥ para celebrar este momento tan lindo.
-        </p>
+      <footer className="invite-footer">
+        <p>Con cariño, los esperamos</p>
       </footer>
-
-      {/* Simple spin animation for loader */}
-      <style jsx global>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

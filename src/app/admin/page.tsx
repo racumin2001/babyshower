@@ -8,6 +8,7 @@ interface EventConfig {
   time: string;
   locationName: string;
   locationAddress: string;
+  locationNotes?: string;
   locationMapUrl: string;
   organizerEmails?: string;
 }
@@ -43,6 +44,7 @@ export default function Admin() {
     time: '',
     locationName: '',
     locationAddress: '',
+    locationNotes: '',
     locationMapUrl: '',
     organizerEmails: '',
   });
@@ -348,7 +350,7 @@ export default function Admin() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
       {/* Admin Navbar */}
-      <header className="header container" style={{ borderBottom: '1px solid rgba(229, 152, 155, 0.1)' }}>
+      <header className="header container" style={{ borderBottom: '1px solid rgba(58, 109, 134, 0.12)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <h2 style={{ fontSize: '1.5rem', color: 'var(--color-primary-dark)', fontWeight: 600 }}>Panel Admin</h2>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'rgba(114, 99, 98, 0.1)', padding: '2px 8px', borderRadius: '10px' }}>
@@ -410,10 +412,21 @@ export default function Admin() {
                 <label className="form-label">Nombre del Lugar</label>
                 <input
                   type="text"
-                  placeholder="Ej. Salón de Eventos Bella Vista o Mi Casa"
+                  placeholder="Ej. Quinchos de la azotea"
                   className="form-control"
                   value={config.locationName}
                   onChange={e => setConfig({ ...config, locationName: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Indicación de llegada</label>
+                <input
+                  type="text"
+                  placeholder="Ej. En el ascensor, marca PM"
+                  className="form-control"
+                  value={config.locationNotes || ''}
+                  onChange={e => setConfig({ ...config, locationNotes: e.target.value })}
                 />
               </div>
 
@@ -661,7 +674,7 @@ export default function Admin() {
                             borderRadius: '12px', 
                             fontSize: '0.75rem', 
                             fontWeight: 600,
-                            backgroundColor: gift.reservedBy ? 'rgba(229, 152, 155, 0.12)' : 'rgba(167, 201, 87, 0.12)',
+                            backgroundColor: gift.reservedBy ? 'rgba(110, 172, 201, 0.18)' : 'rgba(167, 201, 87, 0.12)',
                             color: gift.reservedBy ? 'var(--color-primary-dark)' : '#386641'
                           }}>
                             {gift.reservedBy ? 'RESERVADO' : 'DISPONIBLE'}
@@ -701,7 +714,7 @@ export default function Admin() {
         </section>
       </main>
 
-      <footer style={{ background: 'white', borderTop: '1px solid rgba(229, 152, 155, 0.1)', padding: '24px', textAlign: 'center' }}>
+      <footer style={{ background: 'white', borderTop: '1px solid rgba(58, 109, 134, 0.12)', padding: '24px', textAlign: 'center' }}>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           Panel de Administración de Babyshower
         </p>

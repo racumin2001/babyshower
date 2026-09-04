@@ -8,6 +8,7 @@ export interface EventConfig {
   time: string;
   locationName: string;
   locationAddress: string;
+  locationNotes?: string;
   locationMapUrl: string;
   adminPassword?: string;
   organizerEmails?: string;
@@ -37,34 +38,34 @@ export interface Gift {
 
 // Initial/default gifts catalog
 const BASE_GIFTS: Gift[] = [
-  { id: '1', name: 'Cochecito de bebé', category: 'Paseo y Transporte' },
-  { id: '2', name: 'Silla para el auto', category: 'Paseo y Transporte' },
-  { id: '3', name: 'Cuna portátil / Corral', category: 'Dormitorio' },
-  { id: '4', name: 'Bañera plegable para bebé', category: 'Baño e Higiene' },
-  { id: '5', name: 'Termómetro digital para agua', category: 'Baño e Higiene' },
   { id: '6', name: 'Juego de toallas con capucha', category: 'Baño e Higiene' },
-  { id: '7', name: 'Extractor de leche eléctrico', category: 'Alimentación' },
   { id: '9', name: 'Juego de biberones anticólicos', category: 'Alimentación' },
-  { id: '10', name: 'Esterilizador de biberones', category: 'Alimentación' },
-  { id: '17', name: 'Gimnasio de actividades / Tapete', category: 'Estimulación' },
-  { id: '18', name: 'Mochila pañalera moderna', category: 'Paseo y Transporte' },
   { id: '19', name: 'Set de cortaúñas y cepillo', category: 'Baño e Higiene' },
-  { id: '20', name: 'Ropa de bebé (Set de Bodys 0-3 meses)', category: 'Ropa' },
-  { id: '21', name: 'Ropa de bebé (Set de Bodys 3-6 meses)', category: 'Ropa' },
-  { id: '22', name: 'Ropa de bebé (Pijamas o Enterizos 0-6m)', category: 'Ropa' },
-  { id: '23', name: 'Ropa de bebé (Ropita para salir/vestir)', category: 'Ropa' },
-  { id: '24', name: 'Ropa de bebé (Set de medias, gorritos y mitones)', category: 'Ropa' },
+  { id: '22', name: 'Ropa de bebé (Pijamas o Enterizos 3-9m)', category: 'Ropa' },
+  { id: '25', name: 'Mantas de bebé', category: 'Dormitorio' },
+  { id: '26', name: 'Trenza anti golpes de cuna', category: 'Dormitorio' },
+  { id: '27', name: 'Pañales de género', category: 'Cuidado' },
+  { id: '28', name: 'Chupetes', category: 'Alimentación' },
+  { id: '29', name: 'Juguetes, mordedor y sonajero', category: 'Estimulación' },
+  { id: '30', name: 'Set de comida', category: 'Alimentación' },
 ];
 
 const DEFAULT_GIFTS: Gift[] = [...BASE_GIFTS];
 
-// Generate diaper & wipes packs
+const REMOVED_GIFT_IDS = new Set(['1', '2', '3', '4', '5', '7', '10', '17', '18', '20', '21', '23', '24']);
+
 const diaperSizes = [
-  { code: 'RN', label: 'Talla RN (34-40 pañales)', count: 8 },
+  { code: 'RN', label: 'Talla RN (34-40 pañales)', count: 4 },
   { code: 'P', label: 'Talla P (50-56 pañales)', count: 12 },
   { code: 'M', label: 'Talla M (68-72 pañales)', count: 12 },
   { code: 'G', label: 'Talla G (56-60 pañales)', count: 15 },
   { code: 'WIPES', label: 'Toallitas Húmedas (Multipack x12)', count: 12 },
+];
+
+const carePacks = [
+  { code: 'cream', label: 'Crema para coceduras', count: 4 },
+  { code: 'shampoo', label: 'Shampoo para bebé', count: 4 },
+  { code: 'balsam', label: 'Bálsamo para bebé', count: 4 },
 ];
 
 diaperSizes.forEach(size => {
@@ -72,23 +73,113 @@ diaperSizes.forEach(size => {
   for (let i = 1; i <= size.count; i++) {
     DEFAULT_GIFTS.push({
       id: `diaper_${size.code.toLowerCase()}_${i}`,
-      name: isWipes 
-        ? `${size.label} - Caja ${i}/${size.count}` 
+      name: isWipes
+        ? `${size.label} - Caja ${i}/${size.count}`
         : `Pañales ${size.label} - Paquete ${i}/${size.count}`,
       category: 'Pañales',
     });
   }
 });
 
+carePacks.forEach(pack => {
+  for (let i = 1; i <= pack.count; i++) {
+    DEFAULT_GIFTS.push({
+      id: `diaper_${pack.code}_${i}`,
+      name: `${pack.label} - Unidad ${i}/${pack.count}`,
+      category: 'Pañales',
+    });
+  }
+});
+
 const DEFAULT_CONFIG: EventConfig = {
-  date: '',
-  time: '',
-  locationName: '',
-  locationAddress: '',
-  locationMapUrl: '',
+  date: '2026-10-03',
+  time: '14:00 a 19:00 hs',
+  locationName: 'Quinchos de la azotea',
+  locationAddress: 'Bezanilla 1320, Independencia, Santiago',
+  locationNotes: 'En el ascensor, marca PM',
+  locationMapUrl: 'https://www.google.com/maps/search/?api=1&query=Bezanilla+1320+Independencia+Santiago',
   adminPassword: 'Mil140397#',
   organizerEmails: '',
 };
+
+export function formatEventLocation(config: Pick<EventConfig, 'locationName' | 'locationAddress' | 'locationNotes'>): string {
+  const base = [config.locationName, config.locationAddress].filter(Boolean).join(', ');
+  if (config.locationNotes) {
+    return base ? `${base}. ${config.locationNotes}` : config.locationNotes;
+  }
+  return base || 'Por definir';
+}
+
+function applyConfigDefaults(config: EventConfig): { config: EventConfig; changed: boolean } {
+  let changed = false;
+  const next = { ...config };
+  if (!next.date) {
+    next.date = DEFAULT_CONFIG.date;
+    changed = true;
+  }
+  if (!next.time || next.time === '14:00 hrs' || next.time === '14:00 Hrs') {
+    next.time = DEFAULT_CONFIG.time;
+    changed = true;
+  }
+  if (!next.locationName || next.locationName === 'Bezanilla 1320') {
+    next.locationName = DEFAULT_CONFIG.locationName;
+    changed = true;
+  }
+  if (!next.locationAddress || next.locationAddress === 'Independencia, Santiago') {
+    next.locationAddress = DEFAULT_CONFIG.locationAddress;
+    changed = true;
+  }
+  if (!next.locationNotes) {
+    next.locationNotes = DEFAULT_CONFIG.locationNotes;
+    changed = true;
+  }
+  if (!next.locationMapUrl) {
+    next.locationMapUrl = DEFAULT_CONFIG.locationMapUrl;
+    changed = true;
+  }
+  return { config: next, changed };
+}
+
+function applyCatalogUpdates(gifts: Gift[]): { gifts: Gift[]; changed: boolean } {
+  const byId = new Map(gifts.map(gift => [gift.id, gift]));
+  let changed = false;
+
+  for (const id of REMOVED_GIFT_IDS) {
+    if (byId.has(id)) {
+      byId.delete(id);
+      changed = true;
+    }
+  }
+
+  for (const gift of [...byId.values()]) {
+    if (gift.id.startsWith('diaper_cologne_')) {
+      byId.delete(gift.id);
+      changed = true;
+    }
+    if (!gift.id.startsWith('diaper_rn_')) continue;
+    const index = Number(gift.id.replace('diaper_rn_', ''));
+    if (index > 4 && !gift.reservedBy) {
+      byId.delete(gift.id);
+      changed = true;
+    }
+  }
+
+  for (const desired of DEFAULT_GIFTS) {
+    const existing = byId.get(desired.id);
+    if (!existing) {
+      byId.set(desired.id, { ...desired });
+      changed = true;
+      continue;
+    }
+    if (existing.name !== desired.name || existing.category !== desired.category) {
+      existing.name = desired.name;
+      existing.category = desired.category;
+      changed = true;
+    }
+  }
+
+  return { gifts: Array.from(byId.values()), changed };
+}
 
 // JSON database settings
 const JSON_DB_DIR = path.join(process.cwd(), 'src', 'data');
@@ -120,9 +211,16 @@ function initJsonDb(): Schema {
     if (!parsed.config || !parsed.rsvps || !parsed.gifts) {
       throw new Error('Invalid structure');
     }
-    // Migrate default password in JSON DB too
+    let changed = false;
     if (parsed.config.adminPassword === 'admin123') {
       parsed.config.adminPassword = 'Mil140397#';
+      changed = true;
+    }
+    const configSync = applyConfigDefaults(parsed.config);
+    parsed.config = configSync.config;
+    const catalogSync = applyCatalogUpdates(parsed.gifts);
+    parsed.gifts = catalogSync.gifts;
+    if (changed || configSync.changed || catalogSync.changed) {
       writeJsonDb(parsed);
     }
     return parsed;
@@ -211,23 +309,54 @@ async function initPostgres() {
     if (existingConfigRes.rows.length > 0) {
       try {
         const configData = JSON.parse(existingConfigRes.rows[0].value);
+        let configChanged = false;
         if (configData.adminPassword === 'admin123') {
           configData.adminPassword = 'Mil140397#';
-          await pool.query("UPDATE bs_config SET value = $1 WHERE key = 'config_data'", [JSON.stringify(configData)]);
+          configChanged = true;
+        }
+        const configSync = applyConfigDefaults(configData);
+        if (configChanged || configSync.changed) {
+          await pool.query("UPDATE bs_config SET value = $1 WHERE key = 'config_data'", [JSON.stringify(configSync.config)]);
         }
       } catch (e) {
-        console.error('Error migrating default password:', e);
+        console.error('Error migrating event config:', e);
       }
     }
   }
 
-  // Seed default gifts if empty
+  // Seed default gifts if empty, then sync catalog updates
   const giftsCheck = await pool.query('SELECT count(*) FROM bs_gifts');
   if (parseInt(giftsCheck.rows[0].count) === 0) {
     for (const g of DEFAULT_GIFTS) {
       await pool.query(
         'INSERT INTO bs_gifts (id, name, category, image_url, reserved_by, reserved_at, reserved_email, reminder_sent) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
         [g.id, g.name, g.category, g.imageUrl || null, null, null, null, false]
+      );
+    }
+  } else {
+    await pool.query(
+      `DELETE FROM bs_gifts
+       WHERE id = ANY($1::varchar[])
+         AND (reserved_by IS NULL OR reserved_by = '')`,
+      [Array.from(REMOVED_GIFT_IDS)]
+    );
+    await pool.query(
+      `DELETE FROM bs_gifts
+       WHERE id LIKE 'diaper_rn_%'
+         AND id NOT IN ('diaper_rn_1', 'diaper_rn_2', 'diaper_rn_3', 'diaper_rn_4')
+         AND (reserved_by IS NULL OR reserved_by = '')`
+    );
+    await pool.query(
+      `DELETE FROM bs_gifts
+       WHERE id LIKE 'diaper_cologne_%'
+         AND (reserved_by IS NULL OR reserved_by = '')`
+    );
+    for (const g of DEFAULT_GIFTS) {
+      await pool.query(
+        `INSERT INTO bs_gifts (id, name, category, image_url, reserved_by, reserved_at, reserved_email, reminder_sent)
+         VALUES ($1, $2, $3, $4, NULL, NULL, NULL, FALSE)
+         ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, category = EXCLUDED.category`,
+        [g.id, g.name, g.category, g.imageUrl || null]
       );
     }
   }
@@ -258,7 +387,12 @@ export async function getConfig(): Promise<EventConfig> {
   if (pool) {
     const res = await pool.query("SELECT value FROM bs_config WHERE key = 'config_data'");
     if (res.rows.length > 0) {
-      return JSON.parse(res.rows[0].value);
+      const parsed = JSON.parse(res.rows[0].value);
+      const synced = applyConfigDefaults(parsed);
+      if (synced.changed) {
+        await pool.query("UPDATE bs_config SET value = $1 WHERE key = 'config_data'", [JSON.stringify(synced.config)]);
+      }
+      return synced.config;
     }
     return DEFAULT_CONFIG;
   } else {
