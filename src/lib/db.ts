@@ -36,6 +36,17 @@ export interface Gift {
   reminderSent?: boolean;
 }
 
+export interface EmailLog {
+  id: string;
+  createdAt: string;
+  kind: string;
+  recipient: string;
+  subject: string;
+  sender: string;
+  success: boolean;
+  error: string | null;
+}
+
 // Initial/default gifts catalog
 const BASE_GIFTS: Gift[] = [
   { id: '6', name: 'Juego de toallas con capucha', category: 'Baño e Higiene' },
@@ -193,6 +204,7 @@ interface Schema {
   config: EventConfig;
   rsvps: RSVP[];
   gifts: Gift[];
+  emailLogs?: EmailLog[];
 }
 
 function initJsonDb(): Schema {
@@ -204,6 +216,7 @@ function initJsonDb(): Schema {
       config: DEFAULT_CONFIG,
       rsvps: [],
       gifts: DEFAULT_GIFTS,
+      emailLogs: [],
     };
     fs.writeFileSync(JSON_DB_PATH, JSON.stringify(defaultData, null, 2), 'utf-8');
     return defaultData;
@@ -214,6 +227,9 @@ function initJsonDb(): Schema {
     // Ensure structure is correct
     if (!parsed.config || !parsed.rsvps || !parsed.gifts) {
       throw new Error('Invalid structure');
+    }
+    if (!Array.isArray(parsed.emailLogs)) {
+      parsed.emailLogs = [];
     }
     let changed = false;
     if (parsed.config.adminPassword === 'admin123') {
@@ -233,6 +249,7 @@ function initJsonDb(): Schema {
       config: DEFAULT_CONFIG,
       rsvps: [],
       gifts: DEFAULT_GIFTS,
+      emailLogs: [],
     };
     fs.writeFileSync(JSON_DB_PATH, JSON.stringify(defaultData, null, 2), 'utf-8');
     return defaultData;
@@ -304,6 +321,19 @@ async function initPostgres() {
   `);
   await pool.query(`
     ALTER TABLE bs_gifts ADD COLUMN IF NOT EXISTS reminder_sent BOOLEAN NOT NULL DEFAULT FALSE;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bs_email_logs (
+      id VARCHAR(50) PRIMARY KEY,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      kind VARCHAR(80) NOT NULL,
+      recipient VARCHAR(255) NOT NULL,
+      subject TEXT,
+      sender VARCHAR(255),
+      success BOOLEAN NOT NULL DEFAULT FALSE,
+      error TEXT
+    );
   `);
 
   // Seed default configuration if empty
@@ -594,4 +624,66 @@ export async function markReminderSent(giftId: string): Promise<boolean> {
     }
     return false;
   }
+}
+
+export async function addEmailLog(entry: Omit<EmailLog, 'id' | 'createdAt'>): Promise<void> {
+  try {
+    await ensureDbInitialized();
+    const log: EmailLog = {
+      ...entry,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+      error: entry.error ? entry.error.slice(0, 800) : null,
+    };
+
+    if (pool) {
+      await pool.query(
+        `INSERT INTO bs_email_logs (id, created_at, kind, recipient, subject, sender, success, error)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [log.id, log.createdAt, log.kind, log.recipient, log.subject, log.sender, log.success, log.error]
+      );
+      await pool.query(`
+        DELETE FROM bs_email_logs
+        WHERE id IN (
+          SELECT id FROM bs_email_logs
+          ORDER BY created_at DESC
+          OFFSET 200
+        )
+      `);
+    } else {
+      const data = initJsonDb();
+      data.emailLogs = [log, ...(data.emailLogs || [])].slice(0, 200);
+      writeJsonDb(data);
+    }
+  } catch (err) {
+    console.error('Failed to persist email log:', err);
+  }
+}
+
+export async function getEmailLogs(limit = 80): Promise<EmailLog[]> {
+  await ensureDbInitialized();
+  if (pool) {
+    const res = await pool.query(
+      `SELECT
+         id,
+         created_at as "createdAt",
+         kind,
+         recipient,
+         subject,
+         sender,
+         success,
+         error
+       FROM bs_email_logs
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit]
+    );
+    return res.rows.map(row => ({
+      ...row,
+      createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+    }));
+  }
+
+  const data = initJsonDb();
+  return (data.emailLogs || []).slice(0, limit);
 }

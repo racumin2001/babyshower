@@ -1,12 +1,23 @@
-export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+import { addEmailLog } from '@/lib/db';
+
+export async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  kind = 'general'
+): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM || 'Babyshower <babyshower@dorialtech.com>';
+
+  const persist = async (success: boolean, error: string | null) => {
+    await addEmailLog({ kind, recipient: to, subject, sender: from, success, error });
+  };
+
   if (!apiKey) {
+    await persist(false, 'RESEND_API_KEY no configurada');
     console.warn('RESEND_API_KEY no configurada. Saltando envío de correo.');
     return false;
   }
-
-  // Uses Dorial's verified domain. Override with RESEND_FROM if needed.
-  const from = process.env.RESEND_FROM || 'Babyshower <babyshower@dorialtech.com>';
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -25,13 +36,17 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
     });
 
     if (res.ok) {
+      await persist(true, null);
       return true;
-    } else {
-      const errText = await res.text();
-      console.error('Error al enviar correo con Resend:', errText);
-      return false;
     }
+
+    const errText = await res.text();
+    await persist(false, `HTTP ${res.status}: ${errText}`);
+    console.error('Error al enviar correo con Resend:', errText);
+    return false;
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await persist(false, message);
     console.error('Error de conexión con Resend:', error);
     return false;
   }

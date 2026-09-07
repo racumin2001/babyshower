@@ -46,14 +46,25 @@ export async function POST(request: Request) {
 
         if (rsvpData.email.trim()) {
           const emailHtml = getRsvpEmailHtml(rsvpData.name, rsvpData.isAttending, rsvpData.guestsCount);
-          await sendEmail(rsvpData.email.trim(), '¡Confirmación de Asistencia al Baby Shower! 👶', emailHtml);
+          await sendEmail(rsvpData.email.trim(), '¡Confirmación de Asistencia al Baby Shower! 👶', emailHtml, 'rsvp_invitado');
         }
 
         const emailList = (config.organizerEmails || '')
           .split(',')
           .map((e: string) => e.trim())
           .filter(Boolean);
-        if (emailList.length === 0) return;
+        if (emailList.length === 0) {
+          const { addEmailLog } = await import('@/lib/db');
+          await addEmailLog({
+            kind: 'rsvp_organizador',
+            recipient: '(ninguno)',
+            subject: `RSVP ${rsvpData.name}`,
+            sender: 'n/a',
+            success: false,
+            error: 'No hay correos de organizadores configurados',
+          });
+          return;
+        }
 
         const notificationHtml = getOrganizerRsvpNotificationEmailHtml(
           rsvpData.name,
@@ -65,11 +76,25 @@ export async function POST(request: Request) {
         );
         await Promise.all(
           emailList.map((orgEmail: string) =>
-            sendEmail(orgEmail, `🔔 RSVP Babyshower: ${rsvpData.name} (${rsvpData.isAttending ? 'Asistirá' : 'No asistirá'})`, notificationHtml)
+            sendEmail(
+              orgEmail,
+              `🔔 RSVP Babyshower: ${rsvpData.name} (${rsvpData.isAttending ? 'Asistirá' : 'No asistirá'})`,
+              notificationHtml,
+              'rsvp_organizador'
+            )
           )
         );
       } catch (emailErr) {
         console.error('Error sending RSVP emails:', emailErr);
+        const { addEmailLog } = await import('@/lib/db');
+        await addEmailLog({
+          kind: 'rsvp',
+          recipient: rsvpData.email || '(organizadores)',
+          subject: `RSVP ${rsvpData.name}`,
+          sender: 'n/a',
+          success: false,
+          error: emailErr instanceof Error ? emailErr.message : String(emailErr),
+        });
       }
     });
     

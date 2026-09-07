@@ -58,7 +58,7 @@ export async function POST(request: Request) {
                 mapUrl: config.locationMapUrl || undefined,
               };
               const html = getGiftReservationEmailHtml(reservedBy.trim(), [gift.name], eventDetails);
-              await sendEmail(reservedEmail.trim(), '¡Muchas Gracias por tu Regalo! 🎁', html);
+              await sendEmail(reservedEmail.trim(), '¡Muchas Gracias por tu Regalo! 🎁', html, 'regalo_invitado');
 
               const emailList = (config.organizerEmails || '').split(',').map((e: string) => e.trim()).filter(Boolean);
               if (emailList.length > 0) {
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
                 const notificationHtml = getOrganizerGiftNotificationEmailHtml(reservedBy.trim(), reservedEmail.trim(), gift.name);
                 await Promise.all(
                   emailList.map((orgEmail: string) =>
-                    sendEmail(orgEmail, `🎁 Regalo Reservado: ${gift.name} por ${reservedBy.trim()}`, notificationHtml)
+                    sendEmail(orgEmail, `🎁 Regalo Reservado: ${gift.name} por ${reservedBy.trim()}`, notificationHtml, 'regalo_organizador')
                   )
                 );
               }
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
                 mapUrl: config.locationMapUrl || undefined,
               };
               const html = getGiftReservationEmailHtml(reservedBy.trim(), [newGift.name], eventDetails);
-              await sendEmail(reservedEmail.trim(), '¡Muchas Gracias por tu Regalo! 🎁', html);
+              await sendEmail(reservedEmail.trim(), '¡Muchas Gracias por tu Regalo! 🎁', html, 'regalo_invitado');
 
               const emailList = (config.organizerEmails || '').split(',').map((e: string) => e.trim()).filter(Boolean);
               if (emailList.length > 0) {
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
                 const notificationHtml = getOrganizerGiftNotificationEmailHtml(reservedBy.trim(), reservedEmail.trim(), newGift.name);
                 await Promise.all(
                   emailList.map((orgEmail: string) =>
-                    sendEmail(orgEmail, `🎁 Regalo Reservado: ${newGift.name} por ${reservedBy.trim()}`, notificationHtml)
+                    sendEmail(orgEmail, `🎁 Regalo Reservado: ${newGift.name} por ${reservedBy.trim()}`, notificationHtml, 'regalo_organizador')
                   )
                 );
               }

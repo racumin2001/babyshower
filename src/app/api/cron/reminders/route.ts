@@ -73,7 +73,7 @@ export async function GET(request: Request) {
       const subject = 'Recordatorio: ¡Falta muy poco para el Baby Shower! 👶';
       const html = getReminderEmailHtml(group.guestName, group.itemNames, eventDetails);
 
-      const success = await sendEmail(email, subject, html);
+      const success = await sendEmail(email, subject, html, 'recordatorio');
       if (success) {
         // Mark all these gifts as reminderSent in the database
         await Promise.all(group.giftIds.map(id => markReminderSent(id)));

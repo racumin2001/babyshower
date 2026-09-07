@@ -33,6 +33,17 @@ interface Gift {
   reservedAt?: string | null;
 }
 
+interface EmailLog {
+  id: string;
+  createdAt: string;
+  kind: string;
+  recipient: string;
+  subject: string;
+  sender: string;
+  success: boolean;
+  error: string | null;
+}
+
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -51,6 +62,7 @@ export default function Admin() {
   
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
   const [gifts, setGifts] = useState<Gift[]>([]);
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
   // New gift form state
@@ -87,13 +99,15 @@ export default function Admin() {
         setIsAuthenticated(true);
 
         // Fetch config & gifts
-        const [configRes, giftsRes] = await Promise.all([
+        const [configRes, giftsRes, logsRes] = await Promise.all([
           fetch('/api/config'),
-          fetch('/api/gifts')
+          fetch('/api/gifts'),
+          fetch('/api/email-logs', { headers: { 'x-admin-password': pwd } }),
         ]);
         
         if (configRes.ok) setConfig(await configRes.json());
         if (giftsRes.ok) setGifts(await giftsRes.json());
+        if (logsRes.ok) setEmailLogs(await logsRes.json());
       } else {
         setLoginError('Contraseña incorrecta');
         localStorage.removeItem('admin_password');
@@ -118,6 +132,16 @@ export default function Admin() {
     setPassword('');
     setRsvps([]);
     setGifts([]);
+    setEmailLogs([]);
+  };
+
+  const refreshEmailLogs = async () => {
+    try {
+      const logsRes = await fetch('/api/email-logs', { headers: { 'x-admin-password': password } });
+      if (logsRes.ok) setEmailLogs(await logsRes.json());
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Save Event Configuration
@@ -565,6 +589,68 @@ export default function Admin() {
                         >
                           Eliminar
                         </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+
+        {/* Email attempt log */}
+        <section style={{ marginBottom: '40px' }}>
+          <div className="glass-card" style={{ overflowX: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <h3 style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                Log de correos ({emailLogs.length})
+              </h3>
+              <button onClick={refreshEmailLogs} className="btn btn-secondary" style={{ padding: '8px 18px', fontSize: '0.85rem' }}>
+                Actualizar
+              </button>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Cada intento de notificación (éxito o falla) queda registrado aquí. Si no te llegó un correo, revisa la columna Error.
+            </p>
+            {emailLogs.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '30px 0' }}>
+                Aún no hay intentos de correo. Cuando alguien confirme o reserve, aparecerán aquí.
+              </p>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left', minWidth: '760px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid rgba(114, 99, 98, 0.1)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '12px' }}>Fecha</th>
+                    <th style={{ padding: '12px' }}>Tipo</th>
+                    <th style={{ padding: '12px' }}>Para</th>
+                    <th style={{ padding: '12px' }}>Asunto</th>
+                    <th style={{ padding: '12px' }}>Estado</th>
+                    <th style={{ padding: '12px' }}>Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {emailLogs.map((log, idx) => (
+                    <tr key={log.id} style={{ borderBottom: '1px solid rgba(114, 99, 98, 0.05)', backgroundColor: idx % 2 === 0 ? 'rgba(255,255,255,0.3)' : 'transparent' }}>
+                      <td style={{ padding: '12px', fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        {new Date(log.createdAt).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
+                      </td>
+                      <td style={{ padding: '12px' }}>{log.kind}</td>
+                      <td style={{ padding: '12px', wordBreak: 'break-all' }}>{log.recipient}</td>
+                      <td style={{ padding: '12px', maxWidth: '220px' }}>{log.subject}</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          padding: '3px 10px',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          backgroundColor: log.success ? 'rgba(167, 201, 87, 0.12)' : 'rgba(214, 40, 40, 0.12)',
+                          color: log.success ? '#386641' : '#b22222',
+                        }}>
+                          {log.success ? 'ENVIADO' : 'FALLÓ'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '0.75rem', color: '#b22222', maxWidth: '280px', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        {log.error || '-'}
                       </td>
                     </tr>
                   ))}
