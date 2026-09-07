@@ -99,7 +99,7 @@ const DEFAULT_CONFIG: EventConfig = {
   locationNotes: 'En el ascensor, marca PM',
   locationMapUrl: 'https://www.google.com/maps/search/?api=1&query=Bezanilla+1320+Independencia+Santiago',
   adminPassword: 'Mil140397#',
-  organizerEmails: '',
+  organizerEmails: 'genesismelendez375@gmail.com, sebastiansotog@gmail.com',
 };
 
 export function formatEventLocation(config: Pick<EventConfig, 'locationName' | 'locationAddress' | 'locationNotes'>): string {
@@ -135,6 +135,10 @@ function applyConfigDefaults(config: EventConfig): { config: EventConfig; change
   }
   if (!next.locationMapUrl) {
     next.locationMapUrl = DEFAULT_CONFIG.locationMapUrl;
+    changed = true;
+  }
+  if (!next.organizerEmails) {
+    next.organizerEmails = DEFAULT_CONFIG.organizerEmails;
     changed = true;
   }
   return { config: next, changed };
@@ -252,6 +256,9 @@ if (connectionString) {
     ssl: {
       rejectUnauthorized: false,
     },
+    max: 1,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 10000,
   });
 }
 
@@ -324,39 +331,14 @@ async function initPostgres() {
     }
   }
 
-  // Seed default gifts if empty, then sync catalog updates
+  // Seed default gifts if empty. Do not upsert the full catalog on every
+  // cold start — that is dozens of queries and can time out RSVP saves.
   const giftsCheck = await pool.query('SELECT count(*) FROM bs_gifts');
   if (parseInt(giftsCheck.rows[0].count) === 0) {
     for (const g of DEFAULT_GIFTS) {
       await pool.query(
         'INSERT INTO bs_gifts (id, name, category, image_url, reserved_by, reserved_at, reserved_email, reminder_sent) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
         [g.id, g.name, g.category, g.imageUrl || null, null, null, null, false]
-      );
-    }
-  } else {
-    await pool.query(
-      `DELETE FROM bs_gifts
-       WHERE id = ANY($1::varchar[])
-         AND (reserved_by IS NULL OR reserved_by = '')`,
-      [Array.from(REMOVED_GIFT_IDS)]
-    );
-    await pool.query(
-      `DELETE FROM bs_gifts
-       WHERE id LIKE 'diaper_rn_%'
-         AND id NOT IN ('diaper_rn_1', 'diaper_rn_2', 'diaper_rn_3', 'diaper_rn_4')
-         AND (reserved_by IS NULL OR reserved_by = '')`
-    );
-    await pool.query(
-      `DELETE FROM bs_gifts
-       WHERE id LIKE 'diaper_cologne_%'
-         AND (reserved_by IS NULL OR reserved_by = '')`
-    );
-    for (const g of DEFAULT_GIFTS) {
-      await pool.query(
-        `INSERT INTO bs_gifts (id, name, category, image_url, reserved_by, reserved_at, reserved_email, reminder_sent)
-         VALUES ($1, $2, $3, $4, NULL, NULL, NULL, FALSE)
-         ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, category = EXCLUDED.category`,
-        [g.id, g.name, g.category, g.imageUrl || null]
       );
     }
   }
@@ -370,10 +352,8 @@ async function ensureDbInitialized() {
       await initPostgres();
       isInitialized = true;
     } catch (err) {
-      console.error('Failed to initialize Postgres, falling back to JSON local file.', err);
-      pool = null; // force JSON fallback
-      initJsonDb();
-      isInitialized = true;
+      console.error('Failed to initialize Postgres.', err);
+      throw err;
     }
   } else {
     initJsonDb();

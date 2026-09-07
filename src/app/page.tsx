@@ -173,7 +173,8 @@ export default function Home() {
         setRsvpGuests(1);
         setRsvpMessage('');
       } else {
-        throw new Error('Response error');
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || 'Response error');
       }
     } catch (err) {
       console.error(err);

@@ -5,8 +5,9 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
     return false;
   }
 
-  // To allow testing easily with Resend's free Sandbox, if a domain isn't verified, 
-  // Resend will throw an error if sending to third parties. We should warn the user.
+  // Uses Dorial's verified domain. Override with RESEND_FROM if needed.
+  const from = process.env.RESEND_FROM || 'Babyshower <babyshower@dorialtech.com>';
+
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -14,9 +15,10 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
+      signal: AbortSignal.timeout(4000),
       body: JSON.stringify({
-        from: 'Babyshower <onboarding@resend.dev>',
-        to,
+        from,
+        to: [to],
         subject,
         html,
       }),

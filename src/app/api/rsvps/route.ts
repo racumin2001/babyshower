@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { getRsvps, addRsvp, getConfig, deleteRsvp } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
@@ -38,41 +40,38 @@ export async function POST(request: Request) {
     const config = await getConfig();
     const newRsvp = await addRsvp(rsvpData);
 
-    // Send email confirmation if email was provided
-    if (rsvpData.email) {
+    after(async () => {
       try {
-        const { sendEmail, getRsvpEmailHtml } = await import('@/lib/email');
-        const emailHtml = getRsvpEmailHtml(rsvpData.name, rsvpData.isAttending, rsvpData.guestsCount);
-        await sendEmail(rsvpData.email.trim(), '¡Confirmación de Asistencia al Baby Shower! 👶', emailHtml);
-      } catch (emailErr) {
-        console.error('Error sending RSVP confirmation email:', emailErr);
-      }
-    }
+        const { sendEmail, getRsvpEmailHtml, getOrganizerRsvpNotificationEmailHtml } = await import('@/lib/email');
 
-    // Send notifications to organizers if configured
-    if (config.organizerEmails) {
-      const emailList = config.organizerEmails.split(',').map((e: any) => e.trim()).filter(Boolean);
-      if (emailList.length > 0) {
-        try {
-          const { sendEmail, getOrganizerRsvpNotificationEmailHtml } = await import('@/lib/email');
-          const notificationHtml = getOrganizerRsvpNotificationEmailHtml(
-            rsvpData.name,
-            rsvpData.phone,
-            rsvpData.email,
-            rsvpData.isAttending,
-            rsvpData.guestsCount,
-            rsvpData.message
-          );
-          await Promise.all(
-            emailList.map((orgEmail: string) => 
-              sendEmail(orgEmail, `🔔 RSVP Babyshower: ${rsvpData.name} (${rsvpData.isAttending ? 'Asistirá' : 'No asistirá'})`, notificationHtml)
-            )
-          );
-        } catch (emailErr) {
-          console.error('Error sending RSVP notification to organizers:', emailErr);
+        if (rsvpData.email.trim()) {
+          const emailHtml = getRsvpEmailHtml(rsvpData.name, rsvpData.isAttending, rsvpData.guestsCount);
+          await sendEmail(rsvpData.email.trim(), '¡Confirmación de Asistencia al Baby Shower! 👶', emailHtml);
         }
+
+        const emailList = (config.organizerEmails || '')
+          .split(',')
+          .map((e: string) => e.trim())
+          .filter(Boolean);
+        if (emailList.length === 0) return;
+
+        const notificationHtml = getOrganizerRsvpNotificationEmailHtml(
+          rsvpData.name,
+          rsvpData.phone,
+          rsvpData.email,
+          rsvpData.isAttending,
+          rsvpData.guestsCount,
+          rsvpData.message
+        );
+        await Promise.all(
+          emailList.map((orgEmail: string) =>
+            sendEmail(orgEmail, `🔔 RSVP Babyshower: ${rsvpData.name} (${rsvpData.isAttending ? 'Asistirá' : 'No asistirá'})`, notificationHtml)
+          )
+        );
+      } catch (emailErr) {
+        console.error('Error sending RSVP emails:', emailErr);
       }
-    }
+    });
     
     return NextResponse.json(newRsvp);
   } catch (error) {

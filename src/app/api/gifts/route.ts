@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { getGifts, reserveGift, unreserveGift, addGift, deleteGift, getConfig, formatEventLocation } from '@/lib/db';
 import { sendEmail, getGiftReservationEmailHtml } from '@/lib/email';
 
@@ -48,20 +48,19 @@ export async function POST(request: Request) {
 
         const success = await reserveGift(giftId, reservedBy.trim(), reservedEmail.trim());
         if (success) {
-          try {
-            const config = await getConfig();
-            const eventDetails = {
-              date: config.date,
-              time: config.time || 'Por definir',
-              location: formatEventLocation(config),
-              mapUrl: config.locationMapUrl || undefined,
-            };
-            const html = getGiftReservationEmailHtml(reservedBy.trim(), [gift.name], eventDetails);
-            await sendEmail(reservedEmail.trim(), '¡Muchas Gracias por tu Regalo! 🎁', html);
+          after(async () => {
+            try {
+              const config = await getConfig();
+              const eventDetails = {
+                date: config.date,
+                time: config.time || 'Por definir',
+                location: formatEventLocation(config),
+                mapUrl: config.locationMapUrl || undefined,
+              };
+              const html = getGiftReservationEmailHtml(reservedBy.trim(), [gift.name], eventDetails);
+              await sendEmail(reservedEmail.trim(), '¡Muchas Gracias por tu Regalo! 🎁', html);
 
-            // Notify organizers
-            if (config.organizerEmails) {
-              const emailList = config.organizerEmails.split(',').map((e: any) => e.trim()).filter(Boolean);
+              const emailList = (config.organizerEmails || '').split(',').map((e: string) => e.trim()).filter(Boolean);
               if (emailList.length > 0) {
                 const { getOrganizerGiftNotificationEmailHtml } = await import('@/lib/email');
                 const notificationHtml = getOrganizerGiftNotificationEmailHtml(reservedBy.trim(), reservedEmail.trim(), gift.name);
@@ -71,10 +70,10 @@ export async function POST(request: Request) {
                   )
                 );
               }
+            } catch (emailErr) {
+              console.error('Error sending confirmation email:', emailErr);
             }
-          } catch (emailErr) {
-            console.error('Error sending confirmation email:', emailErr);
-          }
+          });
           return NextResponse.json({ success: true });
         } else {
           return NextResponse.json({ error: 'El regalo ya está reservado o no existe' }, { status: 409 });
@@ -142,20 +141,19 @@ export async function POST(request: Request) {
         
         const success = await reserveGift(newGift.id, reservedBy.trim(), reservedEmail.trim());
         if (success) {
-          try {
-            const config = await getConfig();
-            const eventDetails = {
-              date: config.date,
-              time: config.time || 'Por definir',
-              location: formatEventLocation(config),
-              mapUrl: config.locationMapUrl || undefined,
-            };
-            const html = getGiftReservationEmailHtml(reservedBy.trim(), [newGift.name], eventDetails);
-            await sendEmail(reservedEmail.trim(), '¡Muchas Gracias por tu Regalo! 🎁', html);
+          after(async () => {
+            try {
+              const config = await getConfig();
+              const eventDetails = {
+                date: config.date,
+                time: config.time || 'Por definir',
+                location: formatEventLocation(config),
+                mapUrl: config.locationMapUrl || undefined,
+              };
+              const html = getGiftReservationEmailHtml(reservedBy.trim(), [newGift.name], eventDetails);
+              await sendEmail(reservedEmail.trim(), '¡Muchas Gracias por tu Regalo! 🎁', html);
 
-            // Notify organizers
-            if (config.organizerEmails) {
-              const emailList = config.organizerEmails.split(',').map((e: any) => e.trim()).filter(Boolean);
+              const emailList = (config.organizerEmails || '').split(',').map((e: string) => e.trim()).filter(Boolean);
               if (emailList.length > 0) {
                 const { getOrganizerGiftNotificationEmailHtml } = await import('@/lib/email');
                 const notificationHtml = getOrganizerGiftNotificationEmailHtml(reservedBy.trim(), reservedEmail.trim(), newGift.name);
@@ -165,10 +163,10 @@ export async function POST(request: Request) {
                   )
                 );
               }
+            } catch (emailErr) {
+              console.error('Error sending surprise confirmation email:', emailErr);
             }
-          } catch (emailErr) {
-            console.error('Error sending surprise confirmation email:', emailErr);
-          }
+          });
           return NextResponse.json({ success: true, gift: newGift });
         } else {
           return NextResponse.json({ error: 'No se pudo reservar el regalo sorpresa' }, { status: 500 });
