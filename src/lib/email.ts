@@ -1,5 +1,9 @@
 import { addEmailLog } from '@/lib/db';
 
+function getSiteUrl(): string {
+  return (process.env.NEXT_PUBLIC_SITE_URL || 'https://babyshower-psi.vercel.app').replace(/\/$/, '');
+}
+
 export async function sendEmail(
   to: string,
   subject: string,
@@ -264,7 +268,7 @@ export function getOrganizerRsvpNotificationEmailHtml(name: string, phone: strin
         </table>
         
         <div style="text-align: center; margin-top: 25px;">
-          <a href="https://babyshower-vert.vercel.app/admin" style="display: inline-block; background-color: #b5828c; color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: bold;">Ver Panel de Administración</a>
+          <a href="${getSiteUrl()}/admin" style="display: inline-block; background-color: #b5828c; color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: bold;">Ver Panel de Administración</a>
         </div>
       </div>
     </div>
@@ -301,7 +305,7 @@ export function getOrganizerGiftNotificationEmailHtml(guestName: string, guestEm
         </table>
         
         <div style="text-align: center; margin-top: 25px;">
-          <a href="https://babyshower-vert.vercel.app/admin" style="display: inline-block; background-color: #b5828c; color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: bold;">Ver Panel de Administración</a>
+          <a href="${getSiteUrl()}/admin" style="display: inline-block; background-color: #b5828c; color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: bold;">Ver Panel de Administración</a>
         </div>
       </div>
     </div>
