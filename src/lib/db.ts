@@ -280,6 +280,7 @@ if (connectionString) {
 }
 
 let isInitialized = false;
+let initPromise: Promise<void> | null = null;
 
 async function initPostgres() {
   if (!pool) return;
@@ -361,34 +362,51 @@ async function initPostgres() {
     }
   }
 
-  // Seed default gifts if empty. Do not upsert the full catalog on every
-  // cold start — that is dozens of queries and can time out RSVP saves.
+  // Seed default gifts if empty. Batch insert to keep cold starts short.
   const giftsCheck = await pool.query('SELECT count(*) FROM bs_gifts');
   if (parseInt(giftsCheck.rows[0].count) === 0) {
-    for (const g of DEFAULT_GIFTS) {
-      await pool.query(
-        'INSERT INTO bs_gifts (id, name, category, image_url, reserved_by, reserved_at, reserved_email, reminder_sent) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-        [g.id, g.name, g.category, g.imageUrl || null, null, null, null, false]
-      );
-    }
+    const values: unknown[] = [];
+    const placeholders: string[] = [];
+    DEFAULT_GIFTS.forEach((g, index) => {
+      const offset = index * 8;
+      placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8})`);
+      values.push(g.id, g.name, g.category, g.imageUrl || null, null, null, null, false);
+    });
+    await pool.query(
+      `INSERT INTO bs_gifts (id, name, category, image_url, reserved_by, reserved_at, reserved_email, reminder_sent)
+       VALUES ${placeholders.join(', ')}
+       ON CONFLICT (id) DO NOTHING`,
+      values
+    );
   }
 }
 
 async function ensureDbInitialized() {
   if (isInitialized) return;
-
-  if (pool) {
-    try {
-      await initPostgres();
-      isInitialized = true;
-    } catch (err) {
-      console.error('Failed to initialize Postgres.', err);
-      throw err;
-    }
-  } else {
-    initJsonDb();
-    isInitialized = true;
+  if (initPromise) {
+    await initPromise;
+    return;
   }
+
+  initPromise = (async () => {
+    if (pool) {
+      try {
+        await initPostgres();
+        isInitialized = true;
+      } catch (err) {
+        console.error('Failed to initialize Postgres.', err);
+        throw err;
+      } finally {
+        initPromise = null;
+      }
+    } else {
+      initJsonDb();
+      isInitialized = true;
+      initPromise = null;
+    }
+  })();
+
+  await initPromise;
 }
 
 // Database helper API
